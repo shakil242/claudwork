@@ -209,6 +209,9 @@ class ShopifyCartUpsell {
         ? this.formatMoney(variant.compare_at_price)
         : null;
 
+      // Get variant info (size, color, etc)
+      const variantInfo = this.getVariantInfo(variant);
+
       return `
         <div class="upsell-product-card" data-product-id="${product.id}">
           <div class="upsell-product-image">
@@ -218,15 +221,17 @@ class ShopifyCartUpsell {
             }
           </div>
           <div class="upsell-product-info">
+            ${product.vendor ? `<p class="upsell-product-vendor">${product.vendor}</p>` : ''}
             <h3 class="upsell-product-title">${product.title}</h3>
+            ${variantInfo ? `<p class="upsell-product-variant">${variantInfo}</p>` : ''}
             <div class="upsell-product-price">
               ${comparePrice ? `<span class="compare-price">${comparePrice}</span>` : ''}
               <span class="price">${price}</span>
             </div>
-            <button class="upsell-add-btn" data-variant-id="${variant.id}">
-              Add to Cart
-            </button>
           </div>
+          <button class="upsell-add-btn" data-variant-id="${variant.id}">
+            Add
+          </button>
         </div>
       `;
     }).join('');
@@ -239,6 +244,23 @@ class ShopifyCartUpsell {
         this.addUpsellToCart(variantId, btn);
       });
     });
+  }
+
+  getVariantInfo(variant) {
+    // Build variant description from options
+    const parts = [];
+
+    if (variant.option1 && variant.option1 !== 'Default Title') {
+      parts.push(variant.option1);
+    }
+    if (variant.option2 && variant.option2 !== 'Default Title') {
+      parts.push(variant.option2);
+    }
+    if (variant.option3 && variant.option3 !== 'Default Title') {
+      parts.push(variant.option3);
+    }
+
+    return parts.length > 0 ? parts.join(' • ') : '';
   }
 
   async addUpsellToCart(variantId, button) {
@@ -289,13 +311,12 @@ class ShopifyCartUpsell {
       <div class="upsell-content">
         <button class="upsell-close" aria-label="Close">&times;</button>
         <div class="upsell-header">
-          <h2>You might also like...</h2>
-          <p>Complete your purchase with these recommendations</p>
+          <h2>Add to your order</h2>
         </div>
         <div class="upsell-products-grid"></div>
         <div class="upsell-footer">
-          <button class="upsell-continue-btn">Continue Shopping</button>
-          <button class="upsell-checkout-btn">View Cart & Checkout</button>
+          <button class="upsell-checkout-btn">Continue to cart</button>
+          <button class="upsell-continue-btn">Keep shopping</button>
         </div>
       </div>
     `;
