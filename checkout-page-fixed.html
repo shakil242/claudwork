@@ -76,8 +76,8 @@
           loader.innerHTML = `<div class="page-loader-spinner"></div>`;
           loader.style.display = "flex";
 
-          // Insert after #checkout-app
-          document.body.insertAdjacentElement('afterend', loader);
+          // Insert into body
+          document.body.appendChild(loader);
 
           return loader;
         }
@@ -4533,8 +4533,11 @@
         function showPayPalButton() {
           if (paypalButton) paypalButton.style.display = 'flex';
           if (completeOrderButton) completeOrderButton.style.display = 'none';
-          standardRadio.click();
-          syncAddressLikeHuman(false);
+          if (standardRadio) standardRadio.click();
+          // Only call syncAddressLikeHuman if it exists
+          if (typeof syncAddressLikeHuman === 'function') {
+            syncAddressLikeHuman(false);
+          }
           // Check billing same as shipping if currently unchecked
           if (billingSameAsShipping && !billingSameAsShipping.checked) {
             billingSameAsShipping.checked = true;
@@ -4568,7 +4571,10 @@
             if (this.checked) {
               // When unchecked, trigger click on standard
               standardRadio.click();
-              syncAddressLikeHuman(false);
+              // Only call syncAddressLikeHuman if it exists
+              if (typeof syncAddressLikeHuman === 'function') {
+                syncAddressLikeHuman(false);
+              }
             } else {
               // When checked, trigger click on expedited
               expeditedRadio.click();
@@ -4750,10 +4756,10 @@
           // Show correct buttons
           if (isSafariOrIOS()) {
             if (applePayBtn) applePayBtn.style.display = 'block';
-            googlePayBtn.style.display = 'none';
+            if (googlePayBtn) googlePayBtn.style.display = 'none';
           } else {
             if (googlePayBtn) googlePayBtn.style.display = 'block';
-            applePayBtn.style.display = 'none';
+            if (applePayBtn) applePayBtn.style.display = 'none';
           }
 
           console.log('Buttons configured for', isSafariOrIOS() ? 'Safari/iOS' : 'Other');
@@ -5227,14 +5233,14 @@
               }
             });
 
-              // If options were added and we don't have autocomplete yet, try to initialize
-              if (optionsAdded && !autocomplete) {
-                const countryCode = getCountryCode();
-                if (countryCode || countrySelect.value) {
-                  setupAutocomplete(); // Direct call for initial setup
-                }
+            // If options were added and we don't have autocomplete yet, try to initialize
+            if (optionsAdded && !autocomplete) {
+              const countryCode = getCountryCode();
+              if (countryCode || countrySelect.value) {
+                setupAutocomplete(); // Direct call for initial setup
               }
-            });
+            }
+          });
 
             // Observe the select for added options
             countryObserver.observe(countrySelect, {
