@@ -1,0 +1,404 @@
+/**
+ * Shopify Post-Cart Upsell Styles
+ * Version: 1.0.0
+ */
+
+/* Modal Container */
+.cart-upsell-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.cart-upsell-modal.active {
+  display: block;
+  opacity: 1;
+}
+
+/* Overlay */
+.upsell-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+/* Modal Content */
+.upsell-content {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 900px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 2rem;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Close Button */
+.upsell-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: transparent;
+  border: none;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #666;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.upsell-close:hover {
+  background: #f5f5f5;
+  color: #000;
+  transform: rotate(90deg);
+}
+
+/* Header */
+.upsell-header {
+  text-align: center;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.upsell-header h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.upsell-header p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Products Grid */
+.upsell-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+/* Product Card */
+.upsell-product-card {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.upsell-product-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  border-color: #ddd;
+}
+
+/* Product Image */
+.upsell-product-image {
+  position: relative;
+  width: 100%;
+  padding-bottom: 100%;
+  overflow: hidden;
+  background: #f9f9f9;
+}
+
+.upsell-product-image img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.upsell-product-card:hover .upsell-product-image img {
+  transform: scale(1.05);
+}
+
+.upsell-product-image .no-image {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #999;
+  font-size: 0.875rem;
+}
+
+/* Product Info */
+.upsell-product-info {
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+}
+
+.upsell-product-title {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #222;
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+/* Product Price */
+.upsell-product-price {
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upsell-product-price .price {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #222;
+}
+
+.upsell-product-price .compare-price {
+  font-size: 0.9rem;
+  color: #999;
+  text-decoration: line-through;
+}
+
+/* Add to Cart Button */
+.upsell-add-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upsell-add-btn:hover {
+  background: #333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.upsell-add-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Footer */
+.upsell-footer {
+  display: flex;
+  gap: 1rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #f0f0f0;
+}
+
+.upsell-continue-btn,
+.upsell-checkout-btn {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.upsell-continue-btn {
+  background: #f5f5f5;
+  color: #222;
+  border: 2px solid #e0e0e0;
+}
+
+.upsell-continue-btn:hover {
+  background: #e8e8e8;
+  border-color: #d0d0d0;
+}
+
+.upsell-checkout-btn {
+  background: #000;
+  color: #fff;
+}
+
+.upsell-checkout-btn:hover {
+  background: #333;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Body class when modal is open */
+body.upsell-modal-open {
+  overflow: hidden;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .upsell-content {
+    width: 95%;
+    padding: 1.5rem;
+    max-height: 95vh;
+  }
+
+  .upsell-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .upsell-products-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .upsell-footer {
+    flex-direction: column;
+  }
+
+  .upsell-close {
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 36px;
+    height: 36px;
+  }
+}
+
+@media (max-width: 480px) {
+  .upsell-content {
+    padding: 1rem;
+  }
+
+  .upsell-header {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .upsell-header h2 {
+    font-size: 1.25rem;
+  }
+
+  .upsell-header p {
+    font-size: 0.875rem;
+  }
+
+  .upsell-products-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .upsell-product-card {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    gap: 1rem;
+  }
+
+  .upsell-product-image {
+    padding-bottom: 0;
+    height: 100px;
+  }
+
+  .upsell-product-info {
+    padding: 0;
+  }
+}
+
+/* Custom Scrollbar */
+.upsell-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.upsell-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.upsell-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.upsell-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Loading State */
+.upsell-products-grid.loading {
+  min-height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upsell-products-grid.loading::after {
+  content: "Loading products...";
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Accessibility */
+.upsell-close:focus,
+.upsell-add-btn:focus,
+.upsell-continue-btn:focus,
+.upsell-checkout-btn:focus {
+  outline: 2px solid #4A90E2;
+  outline-offset: 2px;
+}
+
+/* Animation for added state */
+@keyframes checkmark {
+  0% {
+    transform: scale(0.8);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.upsell-add-btn:disabled {
+  animation: checkmark 0.3s ease;
+}

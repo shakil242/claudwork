@@ -1,0 +1,103 @@
+{% comment %}
+  Shopify Cart Upsell Snippet
+
+  Installation:
+  1. Add this snippet to your theme's snippets folder as 'cart-upsell.liquid'
+  2. Include it in your theme.liquid file before the closing </body> tag:
+     {% render 'cart-upsell' %}
+
+  Customization:
+  - Edit the cartUpsellConfig object below to customize behavior
+  - Modify the CSS to match your theme's styling
+{% endcomment %}
+
+<style>
+  {{ 'cart-upsell.css' | asset_url | stylesheet_tag }}
+</style>
+
+<script>
+  // Configuration - Customize this for your store
+  window.cartUpsellConfig = {
+    enabled: true,
+    modalDelay: 300,
+    autoCloseDelay: 0,
+    maxUpsellProducts: 4,
+
+    {% comment %}
+      Choose recommendation type:
+      - 'manual': Specify product handles below
+      - 'related': Use Shopify's AI recommendations
+      - 'collection': Show products from a specific collection
+    {% endcomment %}
+    recommendations: 'manual',
+
+    {% comment %} For manual recommendations, list product handles {% endcomment %}
+    upsellProducts: [
+      'product-handle-1',
+      'product-handle-2',
+      'product-handle-3',
+      'product-handle-4'
+    ],
+
+    {% comment %} For collection-based recommendations {% endcomment %}
+    collectionHandle: 'upsells',
+
+    excludeCurrentProduct: true,
+    animations: true
+  };
+</script>
+
+<script src="{{ 'cart-upsell.js' | asset_url }}" defer></script>
+
+{% comment %}
+  Alternative: Inline the JavaScript directly
+  Use this if you prefer not to upload the JS file as an asset
+{% endcomment %}
+{% comment %}
+<script>
+  // Paste the contents of cart-upsell.js here
+</script>
+{% endcomment %}
+
+{% comment %}
+  Example: Product-specific upsells
+  You can conditionally set different upsells based on the current product
+{% endcomment %}
+
+{% if template contains 'product' %}
+<script>
+  // Product-specific upsell configuration
+  const productUpsells = {
+    {% for product in collections.all.products limit: 10 %}
+      '{{ product.handle }}': [
+        // Add related product handles here
+        'related-product-1',
+        'related-product-2'
+      ]{% unless forloop.last %},{% endunless %}
+    {% endfor %}
+  };
+
+  // Override config for specific products
+  {% if product %}
+  const currentProduct = '{{ product.handle }}';
+  if (productUpsells[currentProduct]) {
+    window.cartUpsellConfig.upsellProducts = productUpsells[currentProduct];
+  }
+  {% endif %}
+</script>
+{% endif %}
+
+{% comment %}
+  Example: Collection-specific upsells
+  Show different upsells based on which collection the customer is browsing
+{% endcomment %}
+
+{% if template contains 'collection' %}
+<script>
+  {% if collection %}
+  // Use products from current collection for upsells
+  window.cartUpsellConfig.recommendations = 'collection';
+  window.cartUpsellConfig.collectionHandle = '{{ collection.handle }}';
+  {% endif %}
+</script>
+{% endif %}
