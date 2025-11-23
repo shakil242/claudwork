@@ -4116,8 +4116,16 @@
         }
       }
 
-      document.getElementById("isa7ib1").oninput = handleInputToggle;
-      document.getElementById("i8skgo").oninput = handleInputToggle;
+      // Add null checks to prevent errors if elements don't exist
+      const discountInput1 = document.getElementById("isa7ib");
+      const discountInput2 = document.getElementById("i8skgo");
+
+      if (discountInput1) {
+        discountInput1.oninput = handleInputToggle;
+      }
+      if (discountInput2) {
+        discountInput2.oninput = handleInputToggle;
+      }
     </script>
     <script>
       let isStripCAAUTextUnifiedInitialized = false;
