@@ -3677,9 +3677,12 @@
           // Hide the shipping-insurance-container
           $('.shipping-insurance-container').hide();
           // Trigger click on checkbox to uncheck it
-          //              $('#iczym6').trigger('click');
-          document.getElementById('iczym6').click();
-
+          const checkbox = document.getElementById('iczym6');
+          if (checkbox) {
+            checkbox.click();
+          } else {
+            console.warn('Checkbox #iczym6 not found');
+          }
         });
 
         // When the checkbox is clicked
@@ -3893,7 +3896,7 @@
           if (priceElement.attr("price")) {
             const originalPrice = parseFloat(priceElement.attr("price"));
             const formattedPrice = currencySymbol + originalPrice.toFixed(2);
-            $("#ittkxs1, #iqct91").text(formattedPrice);
+            $("#ittkxs1, #iqct9").text(formattedPrice);
             //            	$("#i91pw6, #ittkxs, #iqct9").text(formattedPrice);
 
           }
@@ -4092,32 +4095,66 @@
     </script>
     <script>
       function handleInputToggle() {
-        const input1 = document.getElementById("isa7ib1").value.trim();
-        const input2 = document.getElementById("i8skgo").value.trim();
+        // Get elements with null checks
+        const input1Element = document.getElementById("isa7ib");
+        const input2Element = document.getElementById("i8skgo");
+
+        if (!input1Element || !input2Element) {
+          console.warn('Required input elements not found for handleInputToggle');
+          return;
+        }
+
+        const input1 = input1Element.value.trim();
+        const input2 = input2Element.value.trim();
+
+        // Get all target elements
+        const elements = {
+          show: [
+            document.getElementById("id31p4"),
+            document.getElementById("irl1r"),
+            document.getElementById("ittkxs1"),
+            document.getElementById("i91pw6")
+          ],
+          hide: [
+            document.getElementById("id31p4-2"),
+            document.getElementById("io1dmo"),
+            document.getElementById("i94rj"),
+            document.getElementById("io76633")
+          ]
+        };
+
+        // Check if all elements exist
+        const allExist = [...elements.show, ...elements.hide].every(el => el !== null);
+        if (!allExist) {
+          console.warn('Some target elements not found in handleInputToggle');
+          return;
+        }
 
         if (input1 === "" && input2 === "") {
-          document.getElementById("id31p4").style.display = "block";
-          document.getElementById("irl1r").style.display = "block";
-          document.getElementById("ittkxs1").style.display = "block";
-          document.getElementById("i91pw6").style.display = "block";
-          document.getElementById("id31p4-2").style.display = "none";
-          document.getElementById("io1dmo").style.display = "none";
-          document.getElementById("i94rj").style.display = "none";
-          document.getElementById("io76633").style.display = "none";
+          elements.show.forEach(el => el.style.display = "block");
+          elements.hide.forEach(el => el.style.display = "none");
         } else {
-          document.getElementById("id31p4").style.display = "none";
-          document.getElementById("irl1r").style.display = "none";
-          document.getElementById("ittkxs1").style.display = "none";
-          document.getElementById("i91pw6").style.display = "none";
-          document.getElementById("id31p4-2").style.display = "block";
-          document.getElementById("io1dmo").style.display = "block";
-          document.getElementById("i94rj").style.display = "block";
-          document.getElementById("io76633").style.display = "block";
+          elements.show.forEach(el => el.style.display = "none");
+          elements.hide.forEach(el => el.style.display = "block");
         }
       }
 
-      document.getElementById("isa7ib1").oninput = handleInputToggle;
-      document.getElementById("i8skgo").oninput = handleInputToggle;
+      document.addEventListener("DOMContentLoaded", function () {
+        const a = document.getElementById("isa7ib");
+        const b = document.getElementById("i8skgo");
+
+        if (a) {
+          a.oninput = handleInputToggle;
+        } else {
+          console.warn('Input element #isa7ib not found');
+        }
+
+        if (b) {
+          b.oninput = handleInputToggle;
+        } else {
+          console.warn('Input element #i8skgo not found');
+        }
+      });
     </script>
     <script>
       let isStripCAAUTextUnifiedInitialized = false;
