@@ -1,0 +1,33 @@
+{
+  "compilerOptions": {
+    "target": "ES6",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "checkJs": true,
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "allowSyntheticDefaultImports": true,
+    "baseUrl": ".",
+    "paths": {
+      "*": ["./*"]
+    }
+  },
+  "include": [
+    "*.js",
+    "**/*.js"
+  ],
+  "exclude": [
+    "node_modules",
+    ".git",
+    ".vscode"
+  ],
+  "typeAcquisition": {
+    "enable": true,
+    "include": [
+      "jquery"
+    ]
+  }
+}

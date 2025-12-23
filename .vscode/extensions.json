@@ -1,0 +1,37 @@
+{
+  "recommendations": [
+    // Shopify Development
+    "shopify.theme-check-vscode",
+    "shopify.ruby-lsp",
+
+    // JavaScript & Web Development
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+
+    // HTML & CSS
+    "ecmel.vscode-html-css",
+    "zignd.html-css-class-completion",
+
+    // Git Integration
+    "eamodio.gitlens",
+    "mhutchie.git-graph",
+
+    // Code Quality
+    "streetsidesoftware.code-spell-checker",
+
+    // Utilities
+    "christian-kohler.path-intellisense",
+    "formulahendry.auto-rename-tag",
+    "formulahendry.auto-close-tag",
+
+    // Bracket Pair Colorizer
+    "coenraads.bracket-pair-colorizer-2",
+
+    // Live Server (for testing HTML files)
+    "ritwickdey.liveserver",
+
+    // Better Comments
+    "aaron-bond.better-comments"
+  ],
+  "unwantedRecommendations": []
+}
