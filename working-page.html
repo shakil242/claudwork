@@ -8832,5 +8832,60 @@ ul.ofrbx_list li::before {
             left: 0;
         }
         </style>
-        
+
+        <!-- MISSING JAVASCRIPT FUNCTIONS -->
+        <script script-type="user-script">
+        // ============================================
+        // COUNTDOWN TIMER
+        // ============================================
+        let totalSeconds = 46 * 60 + 2; // 46 minutes 2 seconds
+
+        function updateTimer() {
+          const hours = Math.floor(totalSeconds / 3600);
+          const min = Math.floor((totalSeconds % 3600) / 60);
+          const sec = totalSeconds % 60;
+
+          const timerHR = document.getElementById('timerHR');
+          const timerMin = document.getElementById('timerMin');
+          const timerSec = document.getElementById('timerSec');
+
+          if (timerHR) timerHR.innerHTML = `${String(hours).padStart(2, '0')} <span>HR</span>`;
+          if (timerMin) timerMin.innerHTML = `${String(min).padStart(2, '0')} <span>MIN</span>`;
+          if (timerSec) timerSec.innerHTML = `${String(sec).padStart(2, '0')} <span>SEC</span>`;
+
+          if (totalSeconds > 0) {
+            totalSeconds--;
+            setTimeout(updateTimer, 1000);
+          }
+        }
+
+        // Start timer on load
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', updateTimer);
+        } else {
+          updateTimer();
+        }
+
+        // ============================================
+        // FAQ TOGGLE
+        // ============================================
+        window.toggleFaq = function(el) {
+          const answer = el.nextElementSibling;
+          const arrow = el.querySelector('.arrow, #orderArrow');
+          const isOpen = answer?.classList.contains('open');
+
+          // Close all FAQs
+          document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
+          document.querySelectorAll('.faq-question .arrow, .faq-question #orderArrow').forEach(a => a.classList.remove('open'));
+
+          // Open clicked FAQ if it wasn't already open
+          if (!isOpen && answer) {
+            answer.classList.add('open');
+            if (arrow) arrow.classList.add('open');
+          }
+        };
+
+        console.log('✅ Timer and FAQ functions loaded');
+        </script>
+
         </body></html>
