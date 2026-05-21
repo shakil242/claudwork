@@ -1,0 +1,362 @@
+<!--
+================================================================================
+IMPORTANT: DELETE ALL SCRIPTS AFTER THE LAST toggleFaq() FUNCTION
+
+Find this line in your HTML:
+    function toggleFaq(el) {
+      ...
+    }
+  </script>
+
+DELETE EVERYTHING AFTER that </script> tag (all the way to </body>)
+
+Then paste ALL the code below in its place.
+================================================================================
+-->
+
+<!-- jQuery (load ONCE) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- International Phone Input -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+
+<script>
+/**
+ * CONSOLIDATED INTEGRATION SCRIPT
+ * All functionality in ONE place - no conflicts
+ */
+
+(function() {
+  'use strict';
+
+  console.log('🚀 Starting Integration...');
+
+  // ============================================
+  // WAIT FOR DOM
+  // ============================================
+
+  function initialize() {
+
+    // ============================================
+    // PHONE INPUT SETUP
+    // ============================================
+
+    const phoneInput = document.querySelector("#phone");
+    if (phoneInput && window.intlTelInput) {
+      window.intlTelInput(phoneInput, {
+        initialCountry: "us",
+        separateDialCode: true,
+        preferredCountries: ["us", "pk", "gb", "ae"],
+        utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js"
+      });
+    }
+
+    // ============================================
+    // BILLING SAME AS SHIPPING
+    // ============================================
+
+    const sameBillingCheckbox = document.querySelector("#sameBilling");
+    const billingInfo = document.querySelector("#billingInfo");
+
+    if (sameBillingCheckbox && billingInfo) {
+      sameBillingCheckbox.addEventListener("change", function() {
+        billingInfo.style.display = this.checked ? "none" : "block";
+      });
+    }
+
+    // ============================================
+    // SUBSCRIPTION TOGGLE
+    // ============================================
+
+    const toggleSwitch = document.querySelector(".toggle-switch");
+    const oneTime = document.getElementById("one-time");
+    const subs = document.getElementById("subs");
+
+    if (toggleSwitch && oneTime && subs) {
+      function toggleSections() {
+        if (toggleSwitch.classList.contains("active")) {
+          oneTime.style.display = "none";
+          subs.style.display = "block";
+        } else {
+          oneTime.style.display = "block";
+          subs.style.display = "none";
+        }
+      }
+
+      toggleSections();
+
+      toggleSwitch.addEventListener("click", function() {
+        this.classList.toggle("active");
+        toggleSections();
+      });
+    }
+
+    // ============================================
+    // PRODUCT CONFIGURATION
+    // ============================================
+
+    const PRODUCT_CONFIG = {
+      '144': { id: '144', qty: 1, items: [144] },        // Buy 1
+      '145': { id: '145', qty: 2, items: [145, 146] },   // Buy 2
+      '147': { id: '147', qty: 3, items: [147, 148, 149] } // Buy 3
+    };
+
+    const VARIANT_MAP = {
+      'Chrome': 336,
+      'Nickel': 337,
+      'Black': 338
+    };
+
+    // ============================================
+    // STATE
+    // ============================================
+
+    const state = {
+      selectedColors: { 1: 'Chrome', 2: 'Nickel', 3: 'Black' }
+    };
+
+    // ============================================
+    // HELPER FUNCTIONS
+    // ============================================
+
+    function getActivePackage() {
+      // Check new IDs first
+      if ($('input[name="product"][value="144"]').is(':checked')) return '144';
+      if ($('input[name="product"][value="145"]').is(':checked')) return '145';
+      if ($('input[name="product"][value="147"]').is(':checked')) return '147';
+
+      // Check old IDs and map them
+      if ($('input[name="product"][value="102"]').is(':checked') ||
+          $('input[name="product"][value="105"]').is(':checked')) return '144';
+      if ($('input[name="product"][value="125"]').is(':checked') ||
+          $('input[name="product"][value="104"]').is(':checked')) return '145';
+      if ($('input[name="product"][value="126"]').is(':checked') ||
+          $('input[name="product"][value="103"]').is(':checked')) return '147';
+
+      return '147'; // default Buy 3
+    }
+
+    function getSelectedColor(groupNum) {
+      // Try desktop color selection
+      const desktopActive = $(`#colorGroup${groupNum} .color-opt.active img`).attr('alt');
+      if (desktopActive) return desktopActive;
+
+      // Try mobile dropdown
+      const mobileValue = $(`#mobileColor${groupNum}`).val();
+      if (mobileValue) return mobileValue;
+
+      // Use state
+      return state.selectedColors[groupNum] || 'Chrome';
+    }
+
+    // ============================================
+    // VARIANT UPDATE (THE KEY FUNCTION!)
+    // ============================================
+
+    function updateProductVariants() {
+      const packageId = getActivePackage();
+      const product = PRODUCT_CONFIG[packageId];
+
+      if (!product) return;
+
+      const color1 = getSelectedColor(1);
+      const color2 = getSelectedColor(2);
+      const color3 = getSelectedColor(3);
+
+      console.log(`📦 Package: ${packageId} | Colors: ${color1}, ${color2}, ${color3}`);
+
+      // Update each product checkbox with its variant
+      product.items.forEach((productId, index) => {
+        const itemNumber = index + 1;
+        const color = [color1, color2, color3][index] || 'Chrome';
+        const variantId = VARIANT_MAP[color] || 336;
+
+        const checkbox = $(`input[name="product"][value="${productId}"]`);
+        if (checkbox.length > 0) {
+          checkbox.attr('variantvalue', variantId);
+          console.log(`✅ Product ${productId} → Variant ${variantId} (${color})`);
+        }
+      });
+
+      // Update CRM buttons
+      const firstVariant = VARIANT_MAP[color1] || 336;
+      $('.complete-btn, .checkout-btn, [action="submit"]').attr('variantvalue', firstVariant);
+      console.log(`🔘 Buttons updated → Variant ${firstVariant}`);
+    }
+
+    // ============================================
+    // MOBILE COLOR SYNC
+    // ============================================
+
+    window.syncMobileColor = function(num) {
+      const select = document.getElementById("mobileColor" + num);
+      if (!select) return;
+
+      const color = select.value;
+      state.selectedColors[num] = color;
+
+      // Update desktop selection to match
+      const $desktopGroup = $(`#colorGroup${num}`);
+      $desktopGroup.find('.color-opt').removeClass('active');
+      $desktopGroup.find(`img[alt="${color}"]`).closest('.color-opt').addClass('active');
+
+      // Update color circle background
+      let colorHex = '#bfc3c9';
+      if (color === 'Nickel') colorHex = '#b8b8b8';
+      if (color === 'Black') colorHex = '#333';
+      select.style.backgroundImage = `radial-gradient(circle, ${colorHex} 0%, ${colorHex} 60%, transparent 61%)`;
+
+      // Update variants
+      setTimeout(() => updateProductVariants(), 100);
+    };
+
+    // ============================================
+    // DESKTOP COLOR SELECTION
+    // ============================================
+
+    window.selectColor = function(group, color, el) {
+      state.selectedColors[group] = color;
+
+      // Update UI
+      const groupEl = document.getElementById('colorGroup' + group);
+      if (groupEl) {
+        groupEl.querySelectorAll('.color-opt').forEach(opt => opt.classList.remove('active'));
+        if (el) el.classList.add('active');
+      }
+
+      // Update mobile select to match
+      const mobileSelect = document.getElementById('mobileColor' + group);
+      if (mobileSelect) mobileSelect.value = color;
+
+      // Update label
+      const $group = $(`#colorGroup${group}Wrap, #colorGroup${group}`);
+      const $label = $group.find('.color-group-label span');
+      if ($label.length) $label.text(color);
+
+      console.log(`🎨 Color ${group} → ${color}`);
+
+      // Update variants
+      setTimeout(() => updateProductVariants(), 100);
+    };
+
+    // ============================================
+    // PRODUCT CHECKBOX STYLING
+    // ============================================
+
+    const productCheckboxes = document.querySelectorAll('input[name="product"]');
+
+    function updateBundleUI(selected) {
+      productCheckboxes.forEach(cb => {
+        const box = cb.closest('.bundle-option');
+        if (!box) return;
+
+        box.style.border = "1px solid rgba(192, 192, 192, 1)";
+        box.style.backgroundColor = "transparent";
+
+        if (cb === selected) {
+          box.style.border = "1.5px solid #000000";
+          box.style.backgroundColor = "rgba(254, 252, 232, 1)";
+        }
+      });
+    }
+
+    productCheckboxes.forEach(cb => {
+      cb.addEventListener("click", function() {
+        productCheckboxes.forEach(x => x.checked = false);
+        this.checked = true;
+        updateBundleUI(this);
+
+        setTimeout(() => updateProductVariants(), 100);
+      });
+    });
+
+    // Set default checked
+    const defaultChecked = document.querySelector('input[name="product"]:checked') ||
+                          document.querySelector("#cc-id-giLXM5U4Urcf");
+    if (defaultChecked) {
+      defaultChecked.checked = true;
+      updateBundleUI(defaultChecked);
+    }
+
+    // ============================================
+    // COLOR GROUP 3 VISIBILITY
+    // ============================================
+
+    $('input[name="product"]').on('change', function() {
+      const packageId = getActivePackage();
+      const qty = PRODUCT_CONFIG[packageId]?.qty || 3;
+
+      const group3Desktop = document.getElementById('colorGroup3Wrap');
+      const group3Mobile = document.getElementById('mobileColor3Wrap');
+
+      if (group3Desktop) group3Desktop.style.display = qty >= 3 ? 'block' : 'none';
+      if (group3Mobile) group3Mobile.style.display = qty >= 3 ? 'block' : 'none';
+    });
+
+    // ============================================
+    // MOBILE COLOR DROPDOWNS
+    // ============================================
+
+    $('#mobileColor1, #mobileColor2, #mobileColor3').on('change', function() {
+      const groupNum = parseInt($(this).attr('id').replace('mobileColor', ''));
+      syncMobileColor(groupNum);
+    });
+
+    // ============================================
+    // DESKTOP COLOR CLICKS
+    // ============================================
+
+    $('.color-opt').on('click', function() {
+      const $group = $(this).closest('[id^="colorGroup"]');
+      const groupId = $group.attr('id');
+      const groupNum = parseInt(groupId.replace(/\D/g, '')) || 1;
+      const colorName = $(this).find('img').attr('alt') || 'Chrome';
+
+      selectColor(groupNum, colorName, this);
+    });
+
+    // ============================================
+    // INITIAL SETUP
+    // ============================================
+
+    // Initialize mobile color circles
+    setTimeout(() => {
+      syncMobileColor(1);
+      syncMobileColor(2);
+      syncMobileColor(3);
+    }, 100);
+
+    // Initial variant update
+    setTimeout(() => {
+      console.log('🎯 Initial variant update...');
+      updateProductVariants();
+    }, 500);
+
+    // Second update to ensure everything is set
+    setTimeout(() => {
+      updateProductVariants();
+    }, 1500);
+
+    console.log('✅ Integration Ready!');
+  }
+
+  // ============================================
+  // START WHEN DOM IS READY
+  // ============================================
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+  } else {
+    initialize();
+  }
+
+  // Also run on window load for safety
+  window.addEventListener('load', function() {
+    setTimeout(initialize, 200);
+  });
+
+})();
+</script>
+
+</body>
+</html>
