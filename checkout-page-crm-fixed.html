@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <title>Afina Checkout - Complete Your Order</title>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    /* Add your existing CSS here - keeping it minimal for this example */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
+
+    .cc-cart-row {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      margin-bottom: 8px;
+    }
+
+    .cc-cart-row-margin {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cc-cart-row-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .cc-cart-prod-qty-bubble {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #000;
+      color: #fff;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .cc-cart-row-prod-title {
+      font-weight: 600;
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+
+    .cc-cart-row-variant {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .cc-cart-row-prod-price {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    .order-totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    .order-totals-row.total {
+      border-top: 2px solid #000;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .discount { color: #22c55e; font-weight: 600; }
+    .grandTotal { font-size: 18px; font-weight: 700; }
+
+    #variantSummaryBox {
+      margin: 8px 10px 4px 10px;
+      padding: 8px 10px;
+      background: #f9f9f9;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      font-size: 12px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+  <!-- Order Summary Section -->
+  <div class="order-summary cc-cart-wrapper" id="orderSummary">
+    <div class="order-summary-header" onclick="toggleOrderSummary()">
+      <span>Order Summary</span>
+      <span class="arrow open" id="orderArrow">⌵</span>
+    </div>
+
+    <div class="cc-cart-wrapper" id="orderBod">
+      <!-- Dynamic cart items will be inserted here -->
+      <div id="cartItemsContainer"></div>
+
+      <!-- Order Totals -->
+      <div class="order-totals">
+        <div class="order-totals-row">
+          <span>Shipping & Handling</span>
+          <span class="dynamic-shipping-total" style="color:#22c55e;font-weight:600;">FREE</span>
+        </div>
+        <div class="order-totals-row">
+          <span>Sub Total</span>
+          <span id="subtotal" class="dynamic-price-total cc-cart-details-value">$0.00</span>
+        </div>
+        <div class="order-totals-row">
+          <span>Total Saving</span>
+          <span class="discount cc-cart-details-value" id="totalSaving">$0.00</span>
+        </div>
+        <div class="order-totals-row total">
+          <span>Total:</span>
+          <span id="grandTotal" class="grandTotal">USD $0.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CRM Buttons -->
+  <button
+    class="complete-btn"
+    id="completePurchaseBtn"
+    type="button"
+    action="submit"
+    variantvalue="">
+    COMPLETE PURCHASE
+  </button>
+
+  <button
+    class="paypal-btn"
+    id="paypalBtn"
+    type="button"
+    variantvalue="">
+    Checkout with PayPal
+  </button>
+
+  <!-- Core Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+
+  <script>
+    // ============================================
+    // COMPREHENSIVE CRM & CART MANAGEMENT SYSTEM
+    // ============================================
+
+    const CartManager = {
+      // Product Data
+      products: {
+        '100': { id: '100', name: 'Afina Showerhead', basePrice: 99.95, qty: 3, type: 'subscription' },
+        '101': { id: '101', name: 'Afina Showerhead', basePrice: 84.95, qty: 2, type: 'subscription' },
+        '102': { id: '102', name: 'Afina Showerhead', basePrice: 99.95, qty: 1, type: 'subscription' },
+        '103': { id: '103', name: 'Afina Showerhead', basePrice: 99.58, qty: 3, type: 'onetime' },
+        '104': { id: '104', name: 'Afina Showerhead', basePrice: 107.40, qty: 2, type: 'onetime' },
+        '105': { id: '105', name: 'Afina Showerhead', basePrice: 129.85, qty: 1, type: 'onetime' }
+      },
+
+      // Variant ID Maps (340-378)
+      variantMaps: {
+        buy3: {
+          'Chrome/Chrome/Chrome': 340, 'Chrome/Chrome/Nickel': 341, 'Chrome/Chrome/Black': 342,
+          'Chrome/Nickel/Chrome': 343, 'Chrome/Nickel/Nickel': 344, 'Chrome/Nickel/Black': 345,
+          'Chrome/Black/Chrome': 346, 'Chrome/Black/Nickel': 347, 'Chrome/Black/Black': 348,
+          'Nickel/Chrome/Chrome': 349, 'Nickel/Chrome/Nickel': 350, 'Nickel/Chrome/Black': 351,
+          'Nickel/Nickel/Chrome': 352, 'Nickel/Nickel/Nickel': 353, 'Nickel/Nickel/Black': 354,
+          'Nickel/Black/Chrome': 355, 'Nickel/Black/Nickel': 356, 'Nickel/Black/Black': 357,
+          'Black/Chrome/Chrome': 358, 'Black/Chrome/Nickel': 359, 'Black/Chrome/Black': 360,
+          'Black/Nickel/Chrome': 361, 'Black/Nickel/Nickel': 362, 'Black/Nickel/Black': 363,
+          'Black/Black/Chrome': 364, 'Black/Black/Nickel': 365, 'Black/Black/Black': 366
+        },
+        buy2: {
+          'Chrome/Chrome': 367, 'Chrome/Nickel': 368, 'Chrome/Black': 369,
+          'Nickel/Chrome': 370, 'Nickel/Nickel': 371, 'Nickel/Black': 372,
+          'Black/Chrome': 373, 'Black/Nickel': 374, 'Black/Black': 375
+        },
+        buy1: {
+          'Chrome': 376, 'Nickel': 377, 'Black': 378
+        }
+      },
+
+      // Current State
+      state: {
+        selectedProduct: '100',
+        selectedColors: { 1: 'Chrome', 2: 'Nickel', 3: 'Black' },
+        isSubscription: true
+      },
+
+      // Initialize
+      init() {
+        this.attachEventListeners();
+        this.updateCart();
+        console.log('✅ CartManager initialized');
+      },
+
+      // Get selected product
+      getSelectedProduct() {
+        const checked = document.querySelector('input[name="product"]:checked');
+        if (checked) {
+          this.state.selectedProduct = checked.value;
+        }
+        return this.products[this.state.selectedProduct];
+      },
+
+      // Get variant ID based on colors and quantity
+      getVariantId() {
+        const product = this.getSelectedProduct();
+        const qty = product.qty;
+        const colors = this.state.selectedColors;
+
+        if (qty === 3) {
+          const key = `${colors[1]}/${colors[2]}/${colors[3]}`;
+          return this.variantMaps.buy3[key] || 340;
+        } else if (qty === 2) {
+          const key = `${colors[1]}/${colors[2]}`;
+          return this.variantMaps.buy2[key] || 367;
+        } else {
+          return this.variantMaps.buy1[colors[1]] || 376;
+        }
+      },
+
+      // Calculate pricing
+      calculatePricing() {
+        const product = this.getSelectedProduct();
+        const perItemPrice = product.basePrice;
+        const qty = product.qty;
+        const subtotal = perItemPrice * qty;
+
+        // Calculate original prices for savings
+        const originalPrices = {
+          1: 129.85,
+          2: 159.85,
+          3: 199.85
+        };
+
+        const originalTotal = originalPrices[qty] || subtotal;
+        const savings = originalTotal - subtotal;
+
+        return {
+          perItemPrice: perItemPrice.toFixed(2),
+          subtotal: subtotal.toFixed(2),
+          savings: savings.toFixed(2),
+          total: subtotal.toFixed(2),
+          qty: qty
+        };
+      },
+
+      // Update cart display
+      updateCart() {
+        const product = this.getSelectedProduct();
+        const pricing = this.calculatePricing();
+        const colors = this.state.selectedColors;
+
+        // Build cart items HTML
+        let cartHTML = '<div class="cc-cart-container">';
+
+        for (let i = 1; i <= product.qty; i++) {
+          const color = colors[i] || 'Chrome';
+          const itemPrice = pricing.perItemPrice;
+
+          cartHTML += `
+            <div class="cc-cart-row">
+              <div class="row cc-cart-row-margin">
+                <div class="col-sm-2 p-0 position-relative">
+                  <img class="cc-cart-row-img"
+                       src="https://image.qwenlm.ai/public_source/277601f3-da53-40da-8061-b30526ad8733/1918b3b61-1aa9-4236-bfe9-125bff3c2073.png"
+                       alt="${product.name}" />
+                  <div class="cc-cart-prod-qty-bubble">1</div>
+                </div>
+                <div class="col-sm-10 p-0">
+                  <div class="row cc-cart-row-margin">
+                    <div class="col-6 cc-cart-row-content p-0">
+                      <div class="cc-cart-row-prod-title">${product.name} #${i}</div>
+                      <div class="cc-cart-row-variant">
+                        <span class="cc-cart-row-prod-variant-label font-weight-bold mr-1">Color:</span>
+                        <span class="cc-cart-row-prod-variant">${color}</span>
+                      </div>
+                    </div>
+                    <div class="col-6 cc-cart-row-content p-0">
+                      <div class="text-center">
+                        <div class="cc-cart-row-prod-price">$${itemPrice}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }
+
+        cartHTML += '</div>';
+
+        // Update cart container
+        const cartContainer = document.getElementById('cartItemsContainer');
+        if (cartContainer) {
+          cartContainer.innerHTML = cartHTML;
+        }
+
+        // Update totals
+        this.updateTotals(pricing);
+
+        // Update variant IDs on CRM buttons
+        this.updateCRMButtons();
+
+        // Update color summary
+        this.updateColorSummary();
+
+        console.log('🛒 Cart updated:', { product: product.id, qty: product.qty, pricing });
+      },
+
+      // Update order totals
+      updateTotals(pricing) {
+        const subtotalEl = document.getElementById('subtotal');
+        const savingsEl = document.getElementById('totalSaving');
+        const totalEl = document.getElementById('grandTotal');
+
+        if (subtotalEl) subtotalEl.textContent = `$${pricing.subtotal}`;
+        if (savingsEl) savingsEl.textContent = `$${pricing.savings}`;
+        if (totalEl) totalEl.textContent = `USD $${pricing.total}`;
+      },
+
+      // Update CRM button variant values
+      updateCRMButtons() {
+        const variantId = this.getVariantId();
+
+        const completeBtn = document.getElementById('completePurchaseBtn');
+        const paypalBtn = document.getElementById('paypalBtn');
+
+        if (completeBtn) {
+          completeBtn.setAttribute('variantvalue', variantId);
+        }
+
+        if (paypalBtn) {
+          paypalBtn.setAttribute('variantvalue', variantId);
+        }
+
+        console.log('✅ CRM Buttons updated with Variant ID:', variantId);
+      },
+
+      // Update color summary box
+      updateColorSummary() {
+        const product = this.getSelectedProduct();
+        const colors = this.state.selectedColors;
+
+        // Remove old summary
+        const oldSummary = document.getElementById('variantSummaryBox');
+        if (oldSummary) oldSummary.remove();
+
+        // Create new summary
+        let html = '<div id="variantSummaryBox">';
+        html += '<div style="font-weight:700; margin-bottom:5px; color:#333;">Selected Colors:</div>';
+
+        for (let i = 1; i <= product.qty; i++) {
+          const color = colors[i] || 'Chrome';
+          const dotColor = color === 'Chrome' ? '#bfc3c9' : color === 'Nickel' ? '#b8b8b8' : '#333';
+
+          html += `
+            <div style="display:flex; align-items:center; gap:6px; margin:3px 0;">
+              <div style="width:10px;height:10px;border-radius:50%;background:${dotColor};border:1px solid #ccc;"></div>
+              <span style="color:#555;">Showerhead #${i}: <strong>${color}</strong></span>
+            </div>
+          `;
+        }
+
+        html += '</div>';
+
+        // Insert before totals
+        const orderBod = document.getElementById('orderBod');
+        if (orderBod) {
+          orderBod.insertAdjacentHTML('afterbegin', html);
+        }
+      },
+
+      // Update color selection
+      updateColor(group, color) {
+        this.state.selectedColors[group] = color;
+        this.updateCart();
+        console.log('🎨 Color updated:', { group, color });
+      },
+
+      // Attach event listeners
+      attachEventListeners() {
+        // Product selection change
+        document.addEventListener('change', (e) => {
+          if (e.target && e.target.name === 'product') {
+            setTimeout(() => this.updateCart(), 100);
+          }
+        });
+
+        // Color selection (desktop)
+        document.querySelectorAll('.color-opt').forEach(opt => {
+          opt.addEventListener('click', (e) => {
+            const parent = e.currentTarget.closest('.color-group');
+            if (parent) {
+              const groupNum = parent.id.replace('colorGroup', '').replace('Wrap', '');
+              const img = e.currentTarget.querySelector('img');
+              const color = img ? img.alt : 'Chrome';
+              this.updateColor(parseInt(groupNum), color);
+            }
+          });
+        });
+
+        // Mobile color selection
+        ['mobileColor1', 'mobileColor2', 'mobileColor3'].forEach((id, idx) => {
+          const select = document.getElementById(id);
+          if (select) {
+            select.addEventListener('change', (e) => {
+              this.updateColor(idx + 1, e.target.value);
+            });
+          }
+        });
+      }
+    };
+
+    // Order Summary Toggle
+    function toggleOrderSummary() {
+      const orderBod = document.getElementById('orderBod');
+      const arrow = document.getElementById('orderArrow');
+
+      if (orderBod && arrow) {
+        orderBod.classList.toggle('hidden');
+        arrow.classList.toggle('open');
+      }
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      setTimeout(() => {
+        CartManager.init();
+      }, 500);
+    });
+
+    // Also initialize after window load (backup)
+    window.addEventListener('load', () => {
+      setTimeout(() => {
+        CartManager.init();
+      }, 800);
+    });
+
+    // Expose CartManager globally for debugging
+    window.CartManager = CartManager;
+
+  </script>
+
+</body>
+</html>

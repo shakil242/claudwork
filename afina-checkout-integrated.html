@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" charset="utf-8" />
+
+  <title>Afina Checkout - Complete Your Order</title>
+
+  <!-- Keep all original Afina CSS/Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/css/intlTelInput.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <!-- Add jQuery (required for Raycon backend logic) -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <style>
+    /* Include your Afina CSS here - keeping minimal for example */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: #f5f5f5; }
+
+    .bundle-option {
+      border: 2px solid #ddd;
+      padding: 20px;
+      margin: 10px 0;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .bundle-option.active {
+      border-color: #000;
+      background-color: #fffaeb;
+    }
+
+    .color-opt {
+      display: inline-block;
+      width: 60px;
+      height: 60px;
+      margin: 5px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .color-opt.active {
+      border-color: #000;
+      border-width: 3px;
+    }
+
+    .color-opt img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    /* Order Summary Styles */
+    .order-summary {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+
+    .cc-cart-row {
+      padding: 12px;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .cc-cart-row-img {
+      width: 60px;
+      height: 60px;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    .order-totals-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+
+    .order-totals-row.total {
+      border-top: 2px solid #000;
+      margin-top: 8px;
+      padding-top: 12px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Your Afina Header/Top Section Here -->
+<div class="top-bar">
+  <span class="timer-label">YOUR DISCOUNT RESERVED FOR</span>
+  <div class="timer-box">
+    <span class="timer-seg" id="timerMin">17 <span>MIN</span></span>
+    <span class="timer-sep">:</span>
+    <span class="timer-seg" id="timerSec">44 <span>SEC</span></span>
+  </div>
+</div>
+
+<div class="checkout-wrapper">
+  <div class="checkout-grid">
+
+    <!-- LEFT COLUMN - Bundle Selection -->
+    <div class="left-col">
+
+      <!-- Bundle Section -->
+      <div class="bundle-section">
+        <div class="section-title">
+          <span class="section-num">1</span>
+          <div>Bundle & Save Today</div>
+        </div>
+
+        <!-- Buy 3 Package -->
+        <label class="bundle-option pkg3 active" for="checkbox3">
+          <div class="bundle-header">
+            <input type="checkbox"
+                   name="product"
+                   value="126"
+                   id="checkbox3"
+                   class="fk-product-checkbox"
+                   checked
+                   variantvalue="340" />
+            <span class="bundle-label">Buy 3: Lowest Price</span>
+          </div>
+          <div class="bundle-pricing">
+            <span class="regular-price">Regular Price: <span>$199.85</span></span>
+            <div>
+              <span class="bundle-price">$69.95</span>
+              <span class="bundle-per">/Each</span>
+            </div>
+            <span class="bundle-save">You Save $88.90</span>
+          </div>
+
+          <!-- Color Selection for Buy 3 -->
+          <div class="select_color_option">
+            <div class="mat_color_row_select">
+              <div class="mat_color_num">Select Color #1</div>
+              <div class="color_select_field">
+                <div class="selct-colorbx">
+                  <div class="color-chooseHdng color-tog">
+                    <p class="color1"><span style="background: #bfc3c9"></span>Chrome</p>
+                  </div>
+                  <div class="color-drower" style="display: none;">
+                    <ul class="colorname-list list1">
+                      <li data-color="chrome" data-variant="340">
+                        <p class="color1"><span></span>Chrome</p>
+                      </li>
+                      <li data-color="nickel" data-variant="353">
+                        <p class="color2"><span></span>Nickel</p>
+                      </li>
+                      <li data-color="black" data-variant="366">
+                        <p class="color3"><span></span>Black</p>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mat_color_row_select">
+              <div class="mat_color_num">Select Color #2</div>
+              <div class="color_select_field">
+                <div class="selct-colorbx">
+                  <div class="color-chooseHdng color-tog">
+                    <p class="color1"><span style="background: #bfc3c9"></span>Chrome</p>
+                  </div>
+                  <div class="color-drower" style="display: none;">
+                    <ul class="colorname-list list2">
+                      <li data-color="chrome" data-variant="340">
+                        <p class="color1"><span></span>Chrome</p>
+                      </li>
+                      <li data-color="nickel" data-variant="353">
+                        <p class="color2"><span></span>Nickel</p>
+                      </li>
+                      <li data-color="black" data-variant="366">
+                        <p class="color3"><span></span>Black</p>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mat_color_row_select">
+              <div class="mat_color_num">Select Color #3</div>
+              <div class="color_select_field">
+                <div class="selct-colorbx">
+                  <div class="color-chooseHdng color-tog">
+                    <p class="color1"><span style="background: #bfc3c9"></span>Chrome</p>
+                  </div>
+                  <div class="color-drower" style="display: none;">
+                    <ul class="colorname-list list3">
+                      <li data-color="chrome" data-variant="340">
+                        <p class="color1"><span></span>Chrome</p>
+                      </li>
+                      <li data-color="nickel" data-variant="353">
+                        <p class="color2"><span></span>Nickel</p>
+                      </li>
+                      <li data-color="black" data-variant="366">
+                        <p class="color3"><span></span>Black</p>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </label>
+
+        <!-- Buy 2 Package -->
+        <label class="bundle-option pkg2" for="checkbox2">
+          <div class="bundle-header">
+            <input type="checkbox"
+                   name="product"
+                   value="125"
+                   id="checkbox2"
+                   class="fk-product-checkbox"
+                   variantvalue="367" />
+            <span class="bundle-label">Buy 2: Most Popular</span>
+          </div>
+          <div class="bundle-pricing">
+            <span class="regular-price">Regular Price: <span>$159.85</span></span>
+            <div>
+              <span class="bundle-price">$84.95</span>
+              <span class="bundle-per">/Each</span>
+            </div>
+            <span class="bundle-save">You Save $44.90</span>
+          </div>
+
+          <!-- Color Selection for Buy 2 - Similar structure -->
+        </label>
+
+        <!-- Buy 1 Package -->
+        <label class="bundle-option pkg1" for="checkbox1">
+          <div class="bundle-header">
+            <input type="checkbox"
+                   name="product"
+                   value="102"
+                   id="checkbox1"
+                   class="fk-product-checkbox"
+                   variantvalue="376" />
+            <span class="bundle-label">Buy 1: Starter Deal</span>
+          </div>
+          <div class="bundle-pricing">
+            <span class="regular-price">Regular Price: <span>$129.85</span></span>
+            <div>
+              <span class="bundle-price">$99.95</span>
+              <span class="bundle-per">/Each</span>
+            </div>
+            <span class="bundle-save">You Save $29.90</span>
+          </div>
+        </label>
+      </div>
+
+      <!-- Customer Information Form -->
+      <div class="form-section">
+        <div class="section-title">
+          <span class="section-num">2</span>
+          <div>Customer Information</div>
+        </div>
+
+        <form id="checkoutForm">
+          <input type="email" name="emailAddress" placeholder="Email Address" required />
+          <input type="text" name="shipFirstName" placeholder="First Name" required />
+          <input type="text" name="shipLastName" placeholder="Last Name" required />
+          <input type="tel" name="phoneNumber" placeholder="Phone Number" />
+
+          <!-- Shipping Fields -->
+          <select name="shipCountry" required>
+            <option value="">-- Choose Country --</option>
+            <option value="US">United States</option>
+          </select>
+
+          <input type="text" name="shipAddress1" placeholder="Street Address" required />
+          <input type="text" name="shipAddress2" placeholder="Apt, Suite, etc. (optional)" />
+          <input type="text" name="shipCity" placeholder="City" required />
+
+          <select name="shipState" required>
+            <option value="">State / Province</option>
+            <!-- Add all states -->
+          </select>
+
+          <input type="text" name="shipPostalCode" placeholder="Postal Code" required />
+
+          <!-- Payment Fields -->
+          <div class="payment-section">
+            <input type="text" name="cardNumber" placeholder="Card Number" maxlength="16" required />
+            <input type="text" name="cardDate" placeholder="MM/YY" maxlength="5" required />
+            <input type="text" name="cardSecurityCode" placeholder="CVV" maxlength="4" required />
+          </div>
+
+          <button type="submit"
+                  id="completePurchaseBtn"
+                  class="complete-btn"
+                  action="submit"
+                  variantvalue="340">
+            COMPLETE PURCHASE
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN - Order Summary -->
+    <div class="right-col">
+      <div class="order-summary" id="orderSummary">
+        <div class="order-summary-header">
+          <span>Order Summary</span>
+          <span class="arrow open" id="orderArrow">⌵</span>
+        </div>
+
+        <div id="orderBod">
+          <!-- Dynamic Cart Items Container -->
+          <table id="fk-dynamic-cart-table" class="fold-table">
+            <tbody id="fk-dynamic-cart-body">
+              <!-- Cart rows will be inserted here dynamically -->
+            </tbody>
+          </table>
+
+          <!-- Order Totals -->
+          <div class="order-totals">
+            <div class="order-totals-row">
+              <span>Compare</span>
+              <span class="compareAtTotal">$0.00</span>
+            </div>
+            <div class="order-totals-row">
+              <span>Sub Total</span>
+              <span id="subtotal" class="dynamic-price-total">$0.00</span>
+            </div>
+            <div class="order-totals-row">
+              <span>Total Savings</span>
+              <span id="totalSaving" class="total_savings">$0.00</span>
+            </div>
+            <div class="order-totals-row">
+              <span>Shipping</span>
+              <span class="dynamic-shipping-total">FREE</span>
+            </div>
+            <div class="order-totals-row total">
+              <span>Total</span>
+              <span id="grandTotal" class="grandTotal">$0.00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- INTEGRATED JAVASCRIPT FROM RAYCON BACKEND -->
+<!-- ============================================ -->
+
+<script>
+// Required for CheckoutChamp inline onclick
+window.checkBoxChange = function() { return true; };
+
+document.addEventListener('DOMContentLoaded', function() {
+
+  // ============================================
+  // CONFIGURATION - Afina Products & Variants
+  // ============================================
+
+  const CONFIG = {
+    products: {
+      '126': { id: '126', name: 'Afina Showerhead', basePrice: 69.95, qty: 3, regularPrice: 199.85 },
+      '125': { id: '125', name: 'Afina Showerhead', basePrice: 84.95, qty: 2, regularPrice: 159.85 },
+      '102': { id: '102', name: 'Afina Showerhead', basePrice: 99.95, qty: 1, regularPrice: 129.85 }
+    },
+
+    colorImages: {
+      'chrome': 'https://image.qwenlm.ai/public_source/277601f3-da53-40da-8061-b30526ad8733/1918b3b61-1aa9-4236-bfe9-125bff3c2073.png',
+      'nickel': 'https://image.qwenlm.ai/public_source/277601f3-da53-40da-8061-b30526ad8733/10f24000b-03b9-4efa-bece-dfc9f40333ef.png',
+      'black': 'https://image.qwenlm.ai/public_source/277601f3-da53-40da-8061-b30526ad8733/1403d6deb-afa4-4e87-b5c6-e449c652340c.png'
+    },
+
+    // Variant mapping (340-378) for Afina
+    variantMaps: {
+      buy3: {
+        'chrome/chrome/chrome': 340, 'chrome/chrome/nickel': 341, 'chrome/chrome/black': 342,
+        'chrome/nickel/chrome': 343, 'chrome/nickel/nickel': 344, 'chrome/nickel/black': 345,
+        'chrome/black/chrome': 346, 'chrome/black/nickel': 347, 'chrome/black/black': 348,
+        'nickel/chrome/chrome': 349, 'nickel/chrome/nickel': 350, 'nickel/chrome/black': 351,
+        'nickel/nickel/chrome': 352, 'nickel/nickel/nickel': 353, 'nickel/nickel/black': 354,
+        'nickel/black/chrome': 355, 'nickel/black/nickel': 356, 'nickel/black/black': 357,
+        'black/chrome/chrome': 358, 'black/chrome/nickel': 359, 'black/chrome/black': 360,
+        'black/nickel/chrome': 361, 'black/nickel/nickel': 362, 'black/nickel/black': 363,
+        'black/black/chrome': 364, 'black/black/nickel': 365, 'black/black/black': 366
+      },
+      buy2: {
+        'chrome/chrome': 367, 'chrome/nickel': 368, 'chrome/black': 369,
+        'nickel/chrome': 370, 'nickel/nickel': 371, 'nickel/black': 372,
+        'black/chrome': 373, 'black/nickel': 374, 'black/black': 375
+      },
+      buy1: {
+        'chrome': 376, 'nickel': 377, 'black': 378
+      }
+    }
+  };
+
+  // ============================================
+  // STATE MANAGEMENT
+  // ============================================
+
+  const state = {
+    selectedProduct: '126',
+    selectedColors: {
+      pkg3: { 1: 'chrome', 2: 'chrome', 3: 'chrome' },
+      pkg2: { 1: 'chrome', 2: 'chrome' },
+      pkg1: { 1: 'chrome' }
+    },
+    activePackage: 'pkg3'
+  };
+
+  // ============================================
+  // HELPER FUNCTIONS
+  // ============================================
+
+  function parsePrice(str) {
+    return parseFloat(str.replace(/[^0-9.]/g, '')) || 0;
+  }
+
+  function formatPrice(num) {
+    return '$' + num.toFixed(2);
+  }
+
+  function getActiveProduct() {
+    return CONFIG.products[state.selectedProduct];
+  }
+
+  function getVariantId() {
+    const product = getActiveProduct();
+    const qty = product.qty;
+    const pkg = state.activePackage;
+    const colors = state.selectedColors[pkg];
+
+    if (qty === 3) {
+      const key = `${colors[1]}/${colors[2]}/${colors[3]}`;
+      return CONFIG.variantMaps.buy3[key] || 340;
+    } else if (qty === 2) {
+      const key = `${colors[1]}/${colors[2]}`;
+      return CONFIG.variantMaps.buy2[key] || 367;
+    } else {
+      return CONFIG.variantMaps.buy1[colors[1]] || 376;
+    }
+  }
+
+  // ============================================
+  // CART UPDATE LOGIC
+  // ============================================
+
+  function updateCart() {
+    const product = getActiveProduct();
+    const pkg = state.activePackage;
+    const colors = state.selectedColors[pkg];
+    const pricing = calculatePricing();
+
+    // Build cart HTML
+    let cartHTML = '';
+    for (let i = 1; i <= product.qty; i++) {
+      const color = colors[i] || 'chrome';
+      const colorName = color.charAt(0).toUpperCase() + color.slice(1);
+      const image = CONFIG.colorImages[color];
+
+      cartHTML += `
+        <tr class="cc-cart-row">
+          <td class="image-quantity">
+            <div class="image-quantity-container">
+              <img src="${image}" class="img-fluid product-cart-image" alt="${product.name}" />
+              <div class="quantity-circle">1</div>
+            </div>
+          </td>
+          <td class="fk-shopping-cart-item">
+            ${product.name} #${i}
+            <br />Color: ${colorName}
+          </td>
+          <td class="table-text">
+            ${formatPrice(product.basePrice)}
+          </td>
+        </tr>
+      `;
+    }
+
+    $('#fk-dynamic-cart-body').html(cartHTML);
+    updateTotals(pricing);
+    updateCRMButtons();
+
+    console.log('🛒 Cart updated:', {
+      product: product.id,
+      qty: product.qty,
+      colors: colors,
+      variantId: getVariantId()
+    });
+  }
+
+  function calculatePricing() {
+    const product = getActiveProduct();
+    const subtotal = product.basePrice * product.qty;
+    const savings = product.regularPrice - subtotal;
+
+    return {
+      compareAt: product.regularPrice,
+      subtotal: subtotal,
+      savings: savings > 0 ? savings : 0,
+      total: subtotal
+    };
+  }
+
+  function updateTotals(pricing) {
+    $('.compareAtTotal').text(formatPrice(pricing.compareAt));
+    $('#subtotal, .dynamic-price-total').text(formatPrice(pricing.subtotal));
+    $('#totalSaving, .total_savings').text(formatPrice(pricing.savings));
+    $('#grandTotal, .grandTotal').text(formatPrice(pricing.total));
+  }
+
+  function updateCRMButtons() {
+    const variantId = getVariantId();
+    $('#completePurchaseBtn').attr('variantvalue', variantId);
+    $('button[action="submit"], a[action="submit"]').attr('variantvalue', variantId);
+
+    console.log('✅ CRM Buttons updated - Variant ID:', variantId);
+  }
+
+  // ============================================
+  // CHECKBOX LOGIC
+  // ============================================
+
+  const cb1 = $('#checkbox1');
+  const cb2 = $('#checkbox2');
+  const cb3 = $('#checkbox3');
+
+  let updating = false;
+
+  function handlePackageChange(e) {
+    if (updating) return;
+    updating = true;
+
+    const target = $(e.target);
+
+    if (target.is(cb1) && cb1.is(':checked')) {
+      cb2.prop('checked', false);
+      cb3.prop('checked', false);
+      state.selectedProduct = '102';
+      state.activePackage = 'pkg1';
+      setColorBoxesMode('pkg1');
+    }
+
+    if (target.is(cb2) && cb2.is(':checked')) {
+      cb1.prop('checked', false);
+      cb3.prop('checked', false);
+      state.selectedProduct = '125';
+      state.activePackage = 'pkg2';
+      setColorBoxesMode('pkg2');
+    }
+
+    if (target.is(cb3) && cb3.is(':checked')) {
+      cb1.prop('checked', false);
+      cb2.prop('checked', false);
+      state.selectedProduct = '126';
+      state.activePackage = 'pkg3';
+      setColorBoxesMode('pkg3');
+    }
+
+    // Ensure at least one is checked
+    if (!cb1.is(':checked') && !cb2.is(':checked') && !cb3.is(':checked')) {
+      target.prop('checked', true);
+    }
+
+    updating = false;
+    updateCart();
+  }
+
+  cb1.on('change', handlePackageChange);
+  cb2.on('change', handlePackageChange);
+  cb3.on('change', handlePackageChange);
+
+  // ============================================
+  // COLOR SELECTION LOGIC
+  // ============================================
+
+  function setColorBoxesMode(activePackage) {
+    $('.selct-colorbx').each(function() {
+      const $box = $(this);
+      const $prdOpt = $box.closest('.bundle-option');
+      const packageClass = $prdOpt.hasClass('pkg1') ? 'pkg1' :
+                          $prdOpt.hasClass('pkg2') ? 'pkg2' : 'pkg3';
+
+      const isActive = packageClass === activePackage;
+
+      if (isActive) {
+        $box.removeAttr('data-disabled');
+        $box.find('.color-tog').css({ pointerEvents: 'auto', opacity: '1' });
+      } else {
+        $box.attr('data-disabled', 'true');
+        $box.find('.color-tog').css({ pointerEvents: 'none', opacity: '0.5' });
+        $box.find('.color-drower').slideUp(150);
+      }
+    });
+  }
+
+  // Dropdown toggle
+  let suppressDocumentClose = false;
+
+  $('.selct-colorbx .color-tog, .color-chooseHdng').on('click', function(e) {
+    const $colorBox = $(this).closest('.selct-colorbx');
+    if ($colorBox.attr('data-disabled') === 'true') return;
+
+    e.stopImmediatePropagation();
+    e.preventDefault();
+
+    suppressDocumentClose = true;
+    setTimeout(() => { suppressDocumentClose = false; }, 250);
+
+    const $drawer = $(this).next('.color-drower');
+    $('.color-drower').not($drawer).slideUp(150);
+    $drawer.stop(true, true).slideToggle(200);
+  });
+
+  $(document).on('click', function(e) {
+    if (suppressDocumentClose) return;
+    if (!$(e.target).closest('.selct-colorbx').length) {
+      $('.color-drower').slideUp(150);
+    }
+  });
+
+  // Color selection
+  $('.selct-colorbx .color-drower li').on('click', function(e) {
+    e.stopPropagation();
+
+    const $li = $(this);
+    const $box = $li.closest('.selct-colorbx');
+
+    if ($box.attr('data-disabled') === 'true') return;
+
+    const colorName = $li.text().trim();
+    const colorKey = $li.attr('data-color');
+    const variantValue = $li.attr('data-variant');
+    const $drawer = $box.find('.color-drower');
+    const $nameSpan = $box.find('.color-chooseHdng p');
+    const colorClass = $li.find('p').attr('class') || 'color1';
+
+    // Update UI
+    $nameSpan.attr('class', colorClass);
+    $nameSpan.html(`<span style="background: ${getColorHex(colorKey)}"></span>${colorName}`);
+    $drawer.slideUp(150);
+
+    // Update state
+    const $prdOpt = $box.closest('.bundle-option');
+    const pkg = $prdOpt.hasClass('pkg1') ? 'pkg1' :
+                $prdOpt.hasClass('pkg2') ? 'pkg2' : 'pkg3';
+
+    const colorNum = $box.closest('.mat_color_row_select').index() + 1;
+    state.selectedColors[pkg][colorNum] = colorKey;
+
+    // Update variant and cart
+    const checkbox = $prdOpt.find('input[type="checkbox"]');
+    checkbox.attr('variantvalue', variantValue);
+
+    updateCart();
+  });
+
+  function getColorHex(colorKey) {
+    const colorMap = {
+      'chrome': '#bfc3c9',
+      'nickel': '#b8b8b8',
+      'black': '#333'
+    };
+    return colorMap[colorKey] || '#bfc3c9';
+  }
+
+  // ============================================
+  // INITIALIZATION
+  // ============================================
+
+  // Set default state
+  cb3.prop('checked', true);
+  cb1.prop('checked', false);
+  cb2.prop('checked', false);
+  state.activePackage = 'pkg3';
+  state.selectedProduct = '126';
+  setColorBoxesMode('pkg3');
+
+  // Initial cart update
+  setTimeout(() => {
+    updateCart();
+  }, 500);
+
+  console.log('✅ Afina Checkout Integrated - Ready');
+  console.log('📦 Default package: Buy 3 (Variant 340)');
+
+});
+</script>
+
+</body>
+</html>
