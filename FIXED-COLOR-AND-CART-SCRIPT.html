@@ -1,0 +1,544 @@
+<!--
+================================================================================
+FIXED SCRIPT - Color Group 3 Visibility + Dynamic Cart Updates
+================================================================================
+
+INSTRUCTIONS:
+1. Find the line: function toggleFaq(el) { ... } </script>
+2. DELETE everything AFTER that </script> tag until </body>
+3. Paste ALL the code below
+================================================================================
+-->
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/intlTelInput.min.js"></script>
+
+<script script-type="user-script">
+// ============================================
+// COUNTDOWN TIMER
+// ============================================
+let totalSeconds = 46 * 60 + 2;
+
+function updateTimer() {
+  const min = Math.floor(totalSeconds / 60);
+  const sec = totalSeconds % 60;
+  const timerMin = document.getElementById('timerMin');
+  const timerSec = document.getElementById('timerSec');
+  if (timerMin) timerMin.innerHTML = `${String(min).padStart(2, '0')} <span>MIN</span>`;
+  if (timerSec) timerSec.innerHTML = `${String(sec).padStart(2, '0')} <span>SEC</span>`;
+  if (totalSeconds > 0) {
+    totalSeconds--;
+    setTimeout(updateTimer, 1000);
+  }
+}
+updateTimer();
+
+// ============================================
+// BUNDLE SELECTION
+// ============================================
+let currentQty = 3; // Default to Buy 3
+const colors = { 1: 'Chrome', 2: 'Nickel', 3: 'Black' };
+
+function selectBundle(qty) {
+  currentQty = qty;
+  document.querySelectorAll('.bundle-option').forEach((opt, idx) => {
+    const cb = opt.querySelector('.bundle-checkbox, input[name="product"]');
+    if (idx + 1 === qty) {
+      opt.classList.add('selected');
+      if (cb) cb.checked = true;
+    } else {
+      opt.classList.remove('selected');
+      if (cb) cb.checked = false;
+    }
+  });
+
+  // Show/hide color group 3 - FORCE DISPLAY
+  const group3 = document.getElementById('colorGroup3Wrap');
+  const mobileGroup3 = document.getElementById('mobileColor3Wrap');
+  if (group3) {
+    group3.style.display = qty >= 3 ? 'block' : 'none';
+    group3.style.visibility = 'visible';
+    console.log(`🎨 Color Group 3 visibility: ${qty >= 3 ? 'SHOW' : 'HIDE'}`);
+  }
+  if (mobileGroup3) {
+    mobileGroup3.style.display = qty >= 3 ? 'block' : 'none';
+  }
+
+  // Show/hide express shipping
+  const expressOpt = document.getElementById('expressShippingOpt');
+  if (expressOpt) expressOpt.style.display = qty >= 2 ? 'flex' : 'none';
+
+  // Update variants after bundle change
+  if (window.updateProductVariants) {
+    setTimeout(() => window.updateProductVariants(), 100);
+  }
+}
+
+// Page load default selection - MULTIPLE CHECKS
+document.addEventListener('DOMContentLoaded', () => {
+  selectBundle(3);
+
+  // Force check color group 3 visibility multiple times
+  setTimeout(() => {
+    const group3 = document.getElementById('colorGroup3Wrap');
+    if (group3) group3.style.display = 'block';
+  }, 100);
+
+  setTimeout(() => {
+    const group3 = document.getElementById('colorGroup3Wrap');
+    if (group3) group3.style.display = 'block';
+  }, 500);
+});
+
+// ============================================
+// COLOR SELECTION (Desktop)
+// ============================================
+function selectColor(group, color, el) {
+  colors[group] = color;
+
+  const groupEl = document.getElementById('colorGroup' + group);
+  if (groupEl) {
+    groupEl.querySelectorAll('.color-opt').forEach(opt => opt.classList.remove('active'));
+    if (el) el.classList.add('active');
+  }
+
+  const mobileSelect = document.getElementById('mobileColor' + group);
+  if (mobileSelect) mobileSelect.value = color;
+
+  // Update label text
+  const labelSpan = document.querySelector(`#colorGroup${group}Wrap .color-group-label span, #cc-id-b9TCoyCraMPr, #cc-id-k0B7LiIWVsHS, #cc-id-JdAyjRn0GwQ5`);
+  if (labelSpan && group === 1) document.getElementById('cc-id-b9TCoyCraMPr')?.replaceChildren(document.createTextNode(color));
+  if (labelSpan && group === 2) document.getElementById('cc-id-k0B7LiIWVsHS')?.replaceChildren(document.createTextNode(color));
+  if (labelSpan && group === 3) document.getElementById('cc-id-JdAyjRn0GwQ5')?.replaceChildren(document.createTextNode(color));
+
+  console.log(`🎨 Desktop Color ${group} → ${color}`);
+
+  // Update variants
+  if (window.updateProductVariants) {
+    setTimeout(() => window.updateProductVariants(), 100);
+  }
+}
+
+// ============================================
+// MOBILE COLOR SYNC
+// ============================================
+function syncMobileColor(num) {
+  const select = document.getElementById("mobileColor" + num);
+  if (!select) return;
+
+  const color = select.value;
+  colors[num] = color;
+
+  const groupEl = document.getElementById('colorGroup' + num);
+  if (groupEl) {
+    groupEl.querySelectorAll('.color-opt').forEach((opt, idx) => {
+      opt.classList.remove('active');
+      const optColors = ['Chrome', 'Nickel', 'Black'];
+      if (optColors[idx] === color) opt.classList.add('active');
+    });
+  }
+
+  // Update color circle background
+  let colorHex = '#bfc3c9';
+  if (color === 'Nickel') colorHex = '#b8b8b8';
+  if (color === 'Black') colorHex = '#333';
+  select.style.backgroundImage = `radial-gradient(circle, ${colorHex} 0%, ${colorHex} 60%, transparent 61%)`;
+
+  console.log(`🎨 Mobile Color ${num} → ${color}`);
+
+  // Update variants
+  if (window.updateProductVariants) {
+    setTimeout(() => window.updateProductVariants(), 100);
+  }
+}
+
+// Initialize mobile color circles
+window.addEventListener('load', function() {
+  syncMobileColor(1);
+  syncMobileColor(2);
+  syncMobileColor(3);
+
+  // Force color group 3 visible again on full load
+  setTimeout(() => {
+    const group3 = document.getElementById('colorGroup3Wrap');
+    if (group3) {
+      group3.style.display = 'block';
+      console.log('🎨 Forced Color Group 3 visible on load');
+    }
+  }, 800);
+});
+
+// ============================================
+// FILTER TOGGLE
+// ============================================
+let filterActive = false;
+const toggleEl = document.getElementById("filterToggler");
+
+if (toggleEl) {
+  toggleEl.addEventListener("click", function () {
+    filterActive = !filterActive;
+    if (filterActive) {
+      toggleEl.classList.remove("inactive");
+    } else {
+      toggleEl.classList.add("inactive");
+    }
+  });
+
+  // Auto-click on load
+  window.addEventListener("load", function () {
+    toggleEl?.click();
+  });
+}
+
+// ============================================
+// ORDER SUMMARY TOGGLE
+// ============================================
+let orderOpen = true;
+function toggleOrderSummary() {
+  orderOpen = !orderOpen;
+  const orderBody = document.getElementById('orderBod') || document.getElementById('orderBody');
+  const orderArrow = document.getElementById('orderArrow');
+  if (orderBody) orderBody.classList.toggle('hidden', !orderOpen);
+  if (orderArrow) orderArrow.classList.toggle('open', orderOpen);
+}
+
+// ============================================
+// FAQ TOGGLE
+// ============================================
+function toggleFaq(el) {
+  const answer = el.nextElementSibling;
+  const arrow = el.querySelector('#orderArrow, .arrow');
+  const isOpen = answer?.classList.contains('open');
+
+  document.querySelectorAll('.faq-answer').forEach(a => a.classList.remove('open'));
+  document.querySelectorAll('.faq-question #orderArrow, .faq-question .arrow').forEach(a => a.classList.remove('open'));
+
+  if (!isOpen && answer) {
+    answer.classList.add('open');
+    if (arrow) arrow.classList.add('open');
+  }
+}
+
+// ============================================
+// PHONE INPUT
+// ============================================
+const phoneInput = document.querySelector("#phone");
+if (phoneInput && window.intlTelInput) {
+  const iti = window.intlTelInput(phoneInput, {
+    initialCountry: "us",
+    separateDialCode: true,
+    preferredCountries: ["us", "pk", "gb", "ae"],
+    utilsScript: "https://cdnjs.cloudflare.com/ajax/libs/intl-tel-input/18.2.1/js/utils.js"
+  });
+
+  phoneInput.addEventListener("blur", () => {
+    console.log(iti.getNumber());
+  });
+}
+
+// ============================================
+// SUBSCRIPTION TOGGLE
+// ============================================
+const toggleSwitch = document.querySelector(".toggle-switch");
+const oneTime = document.getElementById("one-time");
+const subs = document.getElementById("subs");
+
+if (toggleSwitch && oneTime && subs) {
+  function toggleSections() {
+    if (toggleSwitch.classList.contains("active")) {
+      oneTime.style.display = "none";
+      subs.style.display = "block";
+    } else {
+      oneTime.style.display = "block";
+      subs.style.display = "none";
+    }
+  }
+
+  // Initial check
+  toggleSections();
+
+  // Click event
+  toggleSwitch.addEventListener("click", function () {
+    this.classList.toggle("active");
+    toggleSections();
+  });
+}
+
+// ============================================
+// PRODUCT CHECKBOX UI
+// ============================================
+document.addEventListener("DOMContentLoaded", function () {
+  const checkboxes = document.querySelectorAll('input[name="product"]');
+
+  function updateUI(selected) {
+    checkboxes.forEach(cb => {
+      let box = cb.closest('.bundle-option');
+      if (!box) return;
+
+      // default style
+      box.style.border = "1px solid rgba(192, 192, 192, 1)";
+      box.style.backgroundColor = "transparent";
+
+      // active style
+      if (cb === selected) {
+        box.style.border = "1.5px solid #000000";
+        box.style.backgroundColor = "rgba(254, 252, 232, 1)";
+      }
+    });
+  }
+
+  checkboxes.forEach(cb => {
+    cb.addEventListener("click", function () {
+      checkboxes.forEach(x => x.checked = false);
+      this.checked = true;
+      updateUI(this);
+
+      // Update variants
+      if (window.updateProductVariants) {
+        setTimeout(() => window.updateProductVariants(), 100);
+      }
+    });
+  });
+
+  // default checked checkbox
+  const defaultChecked = document.querySelector("#cc-id-giLXM5U4Urcf") ||
+                        document.querySelector('input[name="product"][value="147"]') ||
+                        document.querySelector('input[name="product"][value="103"]');
+  if (defaultChecked) {
+    defaultChecked.checked = true;
+    updateUI(defaultChecked);
+  }
+});
+
+// ============================================
+// BILLING SAME AS SHIPPING
+// ============================================
+const sameBillingCheckbox = document.querySelector("#sameBilling");
+const billingInfo = document.querySelector("#billingInfo");
+
+if (sameBillingCheckbox && billingInfo) {
+  sameBillingCheckbox.addEventListener("change", function () {
+    if (this.checked) {
+      billingInfo.style.display = "none";
+    } else {
+      billingInfo.style.display = "block";
+    }
+  });
+}
+
+// ============================================
+// SUBSCRIPTION/ONE-TIME PRODUCT MAPPING
+// ============================================
+window.addEventListener("load", function () {
+  const filterToggler = document.getElementById("filterToggler");
+  if (!filterToggler) return;
+
+  const map = {
+    "147": "126", // Buy 3: One-time → Subscription
+    "145": "125", // Buy 2: One-time → Subscription
+    "144": "102"  // Buy 1: One-time → Subscription
+  };
+
+  const reverseMap = {
+    "126": "147", // Buy 3: Subscription → One-time
+    "125": "145", // Buy 2: Subscription → One-time
+    "102": "144"  // Buy 1: Subscription → One-time
+  };
+
+  // Force select function
+  function forceSelect(val) {
+    let input = document.querySelector(`input[name="product"][value="${val}"]`);
+    if (!input) return;
+
+    // uncheck all first
+    document.querySelectorAll('input[name="product"]').forEach(i => i.checked = false);
+
+    // check target
+    input.checked = true;
+
+    // trigger change
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+
+    // click parent
+    let parent = input.closest(".bundle-option");
+    if (parent) parent.click();
+  }
+
+  // Default to Buy 3 one-time
+  function forceDefault() {
+    forceSelect("147");
+  }
+
+  // Run multiple times to ensure it sticks
+  setTimeout(forceDefault, 200);
+  setTimeout(forceDefault, 700);
+  setTimeout(forceDefault, 1200);
+
+  // Toggle between subscription and one-time
+  filterToggler.addEventListener("click", function () {
+    setTimeout(() => {
+      let checked = document.querySelector('input[name="product"]:checked');
+      if (!checked) return;
+
+      let currentVal = checked.value;
+      let targetValue = map[currentVal] || reverseMap[currentVal];
+
+      if (targetValue) {
+        forceSelect(targetValue);
+      }
+    }, 100);
+  });
+});
+</script>
+
+<script script-type="user-script">
+/**
+ * VARIANT UPDATE LOGIC + DYNAMIC CART
+ * Updates variant values AND regenerates cart in order summary
+ */
+
+(function() {
+  'use strict';
+
+  console.log('🚀 Variant + Cart Integration Loading...');
+
+  const VARIANT_MAP = {
+    'Chrome': 336,
+    'Nickel': 337,
+    'Black': 338
+  };
+
+  const PRODUCT_CONFIG = {
+    '144': { items: [144], qty: 1 },
+    '145': { items: [145, 146], qty: 2 },
+    '147': { items: [147, 148, 149], qty: 3 },
+    // Old IDs map to new
+    '102': { items: [144], qty: 1 },
+    '104': { items: [145, 146], qty: 2 },
+    '105': { items: [144], qty: 1 },
+    '125': { items: [145, 146], qty: 2 },
+    '126': { items: [147, 148, 149], qty: 3 },
+    '103': { items: [147, 148, 149], qty: 3 }
+  };
+
+  function getActivePackage() {
+    const checked = document.querySelector('input[name="product"]:checked');
+    return checked ? checked.value : '147';
+  }
+
+  function getSelectedColor(groupNum) {
+    // Use global colors object
+    return window.colors ? window.colors[groupNum] : 'Chrome';
+  }
+
+  // ============================================
+  // UPDATE CART IN ORDER SUMMARY
+  // ============================================
+  function updateCartDisplay() {
+    const packageId = getActivePackage();
+    const product = PRODUCT_CONFIG[packageId];
+
+    if (!product) return;
+
+    const color1 = getSelectedColor(1) || 'Chrome';
+    const color2 = getSelectedColor(2) || 'Nickel';
+    const color3 = getSelectedColor(3) || 'Black';
+
+    const selectedColors = [color1, color2, color3];
+
+    // Find cart container
+    const cartContainer = document.getElementById('cc-id-TwkSU3UAm4kh');
+    if (!cartContainer) return;
+
+    // Clear existing cart items
+    cartContainer.innerHTML = '';
+
+    // Generate cart rows based on quantity
+    for (let i = 0; i < product.qty; i++) {
+      const color = selectedColors[i];
+      const itemNumber = i + 1;
+
+      const cartRow = document.createElement('div');
+      cartRow.className = 'product-item';
+      cartRow.innerHTML = `
+        <div class="product-details">
+          <div class="product-name">B42 Headphones - ${color}</div>
+          <div class="product-color">Color: ${color}</div>
+        </div>
+        <div class="product-price">$79.00</div>
+      `;
+
+      cartContainer.appendChild(cartRow);
+    }
+
+    console.log(`🛒 Cart updated: ${product.qty} items - ${selectedColors.slice(0, product.qty).join(', ')}`);
+  }
+
+  // ============================================
+  // UPDATE PRODUCT VARIANTS
+  // ============================================
+  window.updateProductVariants = function() {
+    const packageId = getActivePackage();
+    const product = PRODUCT_CONFIG[packageId];
+
+    if (!product) return;
+
+    const color1 = getSelectedColor(1) || 'Chrome';
+    const color2 = getSelectedColor(2) || 'Nickel';
+    const color3 = getSelectedColor(3) || 'Black';
+
+    console.log(`📦 Package: ${packageId} | Colors: ${color1}, ${color2}, ${color3}`);
+
+    // Update each product checkbox
+    product.items.forEach((productId, index) => {
+      const itemNumber = index + 1;
+      const color = [color1, color2, color3][index] || 'Chrome';
+      const variantId = VARIANT_MAP[color] || 336;
+
+      const checkbox = document.querySelector(`input[name="product"][value="${productId}"]`);
+      if (checkbox) {
+        checkbox.setAttribute('variantvalue', variantId);
+        console.log(`✅ Product ${productId} → Variant ${variantId} (${color})`);
+      }
+    });
+
+    // Update CRM buttons
+    const firstVariant = VARIANT_MAP[color1] || 336;
+    const buttons = document.querySelectorAll('.complete-btn, .checkout-btn, [action="submit"], #cc-id-gJjWQNeaMLxD');
+    buttons.forEach(btn => {
+      btn.setAttribute('variantvalue', firstVariant);
+    });
+
+    console.log(`🔘 Buttons updated → Variant ${firstVariant}`);
+
+    // UPDATE THE CART DISPLAY
+    updateCartDisplay();
+  };
+
+  // Run on load
+  window.addEventListener('load', function() {
+    setTimeout(() => {
+      console.log('🎯 Initial variant + cart update...');
+      window.updateProductVariants();
+    }, 1000);
+
+    setTimeout(() => {
+      window.updateProductVariants();
+    }, 2000);
+  });
+
+  // Run on DOMContentLoaded too
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      setTimeout(() => window.updateProductVariants(), 800);
+    });
+  } else {
+    setTimeout(() => window.updateProductVariants(), 800);
+  }
+
+  console.log('✅ Variant + Cart Integration Ready');
+})();
+</script>
+
+</body>
+</html>
