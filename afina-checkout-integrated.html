@@ -174,7 +174,7 @@
               <label
                 class="bundle-option best-value"
                 for="cc-id-JMMlUul94913"
-                onclick="selectBundle(1)"
+                onclick="selectBundle(3)"
                 id="cc-id-y6hcbDXK7XTK"
                 ><div class="bundle-option-header" id="cc-id-5G2tQEB1k7oc">
                   <input
@@ -253,7 +253,7 @@
                 </div></label
               ><label
                 class="bundle-option best-valu"
-                onclick="selectBundle(1)"
+                onclick="selectBundle(2)"
                 id="cc-id-NBWkd50zwikc"
                 for="cc-id-j8mkfSu2ShSw"
                 ><div class="bundle-option-header" id="cc-id-U2WxOtmBvhb7">
@@ -379,7 +379,7 @@
             <div id="one-time" class="one-time">
               <label
                 class="bundle-option best-value"
-                onclick="selectBundle(1)"
+                onclick="selectBundle(3)"
                 for="cc-id-giLXM5U4Urcf"
                 id="cc-id-KwD4pNdeTcwS"
                 ><div class="bundle-option-header" id="cc-id-pTr1ybycqtel">
@@ -458,7 +458,7 @@
                 </div></label
               ><label
                 class="bundle-option best-valu"
-                onclick="selectBundle(1)"
+                onclick="selectBundle(2)"
                 for="cc-id-BxXYr7iFa8Ev"
                 id="cc-id-yM5CTnc2CFyT"
                 ><div class="bundle-option-header" id="cc-id-7GSD30WACGqF">
@@ -581,6 +581,12 @@
                 </div></label
               >
             </div>
+
+            <!-- Hidden checkboxes for combo products -->
+            <input type="checkbox" name="product" value="146" style="display:none;" variantvalue="336">
+            <input type="checkbox" name="product" value="148" style="display:none;" variantvalue="336">
+            <input type="checkbox" name="product" value="149" style="display:none;" variantvalue="336">
+
             <div class="filter-toggle" id="cc-id-U4H6ZCYzOKpY">
               <div class="toggle-switch" id="filterToggler">
                 <div class="toggle-knob" id="cc-id-cnlQ2OVTtRyf"></div>
@@ -2830,16 +2836,48 @@
       let currentQty = 3; // Default to Buy 3
       const colors = { 1: 'Chrome', 2: 'Nickel', 3: 'Black' };
 
+      // Bundle product configurations
+      const BUNDLE_CONFIG = {
+        3: { mainProduct: 147, allProducts: [147, 148, 149] }, // Buy 3
+        2: { mainProduct: 145, allProducts: [145, 146] },      // Buy 2
+        1: { mainProduct: 144, allProducts: [144] }            // Buy 1
+      };
+
       function selectBundle(qty) {
         currentQty = qty;
+
+        // First, uncheck ALL product checkboxes
+        document.querySelectorAll('input[name="product"]').forEach(cb => {
+          cb.checked = false;
+        });
+
+        // Get the bundle config for this qty
+        const bundle = BUNDLE_CONFIG[qty];
+        if (!bundle) {
+          console.error(`❌ No bundle config for qty ${qty}`);
+          return;
+        }
+
+        // Check all products for this bundle
+        bundle.allProducts.forEach((productId, index) => {
+          const checkbox = document.querySelector(`input[name="product"][value="${productId}"]`);
+          if (checkbox) {
+            checkbox.checked = true;
+            // Set default variant (Chrome=336)
+            checkbox.setAttribute('variantvalue', '336');
+            console.log(`✅ Checked product ${productId}`);
+          } else {
+            console.warn(`⚠️ Checkbox for product ${productId} not found`);
+          }
+        });
+
+        // Update bundle option styling
         document.querySelectorAll('.bundle-option').forEach((opt, idx) => {
-          const cb = opt.querySelector('.bundle-checkbox, input[name="product"]');
-          if (idx + 1 === qty) {
+          const cb = opt.querySelector('input[name="product"]');
+          if (cb && bundle.allProducts.includes(parseInt(cb.value))) {
             opt.classList.add('selected');
-            if (cb) cb.checked = true;
           } else {
             opt.classList.remove('selected');
-            if (cb) cb.checked = false;
           }
         });
 
@@ -2855,9 +2893,17 @@
           mobileGroup3.style.display = qty >= 3 ? 'block' : 'none';
         }
 
+        // Show/hide color group 2
+        const group2 = document.getElementById('cc-id-9oUcQA0yVNSo');
+        if (group2) {
+          group2.style.display = qty >= 2 ? 'block' : 'none';
+        }
+
         // Show/hide express shipping
         const expressOpt = document.getElementById('expressShippingOpt');
         if (expressOpt) expressOpt.style.display = qty >= 2 ? 'flex' : 'none';
+
+        console.log(`📦 Bundle selected: Buy ${qty} - Products: [${bundle.allProducts.join(', ')}]`);
 
         // Update variants after bundle change
         if (window.updateProductVariants) {
@@ -2884,6 +2930,8 @@
       // ============================================
       // COLOR SELECTION (Desktop)
       // ============================================
+      const VARIANT_MAP = { 'Chrome': 336, 'Nickel': 337, 'Black': 338 };
+
       function selectColor(group, color, el) {
         colors[group] = color;
 
@@ -2902,7 +2950,14 @@
         if (labelSpan && group === 2) document.getElementById('cc-id-k0B7LiIWVsHS')?.replaceChildren(document.createTextNode(color));
         if (labelSpan && group === 3) document.getElementById('cc-id-JdAyjRn0GwQ5')?.replaceChildren(document.createTextNode(color));
 
-        console.log(`🎨 Desktop Color ${group} → ${color}`);
+        // Apply variant to the corresponding product
+        const checkedProducts = Array.from(document.querySelectorAll('input[name="product"]:checked'));
+        const variantId = VARIANT_MAP[color] || 336;
+
+        if (checkedProducts[group - 1]) {
+          checkedProducts[group - 1].setAttribute('variantvalue', variantId);
+          console.log(`🎨 Desktop Color ${group} → ${color} (Variant ${variantId}) → Product ${checkedProducts[group - 1].value}`);
+        }
 
         // Update variants
         if (window.updateProductVariants) {
@@ -2935,7 +2990,14 @@
         if (color === 'Black') colorHex = '#333';
         select.style.backgroundImage = `radial-gradient(circle, ${colorHex} 0%, ${colorHex} 60%, transparent 61%)`;
 
-        console.log(`🎨 Mobile Color ${num} → ${color}`);
+        // Apply variant to the corresponding product
+        const checkedProducts = Array.from(document.querySelectorAll('input[name="product"]:checked'));
+        const variantId = VARIANT_MAP[color] || 336;
+
+        if (checkedProducts[num - 1]) {
+          checkedProducts[num - 1].setAttribute('variantvalue', variantId);
+          console.log(`🎨 Mobile Color ${num} → ${color} (Variant ${variantId}) → Product ${checkedProducts[num - 1].value}`);
+        }
 
         // Update variants
         if (window.updateProductVariants) {
@@ -3419,40 +3481,9 @@
           });
 
           console.log(`🔘 Buttons updated → Variant ${firstVariant}`);
+          console.log(`🛒 CheckoutChamp will handle cart display automatically`);
 
-          // Update order summary cart
-          updateOrderSummaryCart(product.qty, colors);
-        }
-
-        // ============================================
-        // UPDATE ORDER SUMMARY CART
-        // ============================================
-
-        function updateOrderSummaryCart(qty, colors) {
-          const cartContainer = document.getElementById('cc-id-TwkSU3UAm4kh');
-          if (!cartContainer) {
-            console.warn('⚠️ Cart container not found');
-            return;
-          }
-
-          // Clear existing items
-          cartContainer.innerHTML = '';
-
-          // Add items based on quantity
-          for (let i = 0; i < qty; i++) {
-            const color = colors[i];
-            const itemNumber = i + 1;
-
-            const cartItem = document.createElement('div');
-            cartItem.className = 'cart-item';
-            cartItem.innerHTML = `
-              <div class="item-details"><span class="item-name">Showerhead #${itemNumber}</span><span class="item-color">${color}</span></div><div class="item-price">$79.00</div>
-            `;
-
-            cartContainer.appendChild(cartItem);
-          }
-
-          console.log(`🛒 Cart updated: ${qty} items - ${colors.slice(0, qty).join(', ')}`);
+          // CheckoutChamp's dynamic pricing will handle the cart - NO custom cart generation
         }
 
         // ============================================
