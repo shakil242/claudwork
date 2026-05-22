@@ -2641,12 +2641,15 @@
 
         const targetSet = new Set(bundle.allProducts.map(String));
 
-        // Toggle each product to its desired state via click() so CheckoutChamp's
-        // onclick="checkBoxChange(attributes)" handler fires and the cart updates.
+        // Set the desired checked state directly, then fire a non-bubbling
+        // click so CheckoutChamp's onclick="checkBoxChange(attributes)" handler
+        // runs without the click bubbling up to the bundle-option label (which
+        // would re-enter selectBundle or re-toggle via the label's for=).
         document.querySelectorAll('input[name="product"]').forEach(cb => {
           const shouldBeChecked = targetSet.has(cb.value);
           if (cb.checked !== shouldBeChecked) {
-            cb.click();
+            cb.checked = shouldBeChecked;
+            cb.dispatchEvent(new MouseEvent('click', { bubbles: false, cancelable: true }));
           }
           if (shouldBeChecked) {
             cb.setAttribute('variantvalue', '336');
