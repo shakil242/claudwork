@@ -2625,13 +2625,12 @@
         1: { mainProduct: 144, allProducts: [144] }            // Buy 1
       };
 
+      let _inSelectBundle = false;
       function selectBundle(qty) {
+        if (_inSelectBundle) return;
+        _inSelectBundle = true;
+        try {
         currentQty = qty;
-
-        // First, uncheck ALL product checkboxes
-        document.querySelectorAll('input[name="product"]').forEach(cb => {
-          cb.checked = false;
-        });
 
         // Get the bundle config for this qty
         const bundle = BUNDLE_CONFIG[qty];
@@ -2640,16 +2639,18 @@
           return;
         }
 
-        // Check all products for this bundle
-        bundle.allProducts.forEach((productId, index) => {
-          const checkbox = document.querySelector(`input[name="product"][value="${productId}"]`);
-          if (checkbox) {
-            checkbox.checked = true;
-            // Set default variant (Chrome=336)
-            checkbox.setAttribute('variantvalue', '336');
-            console.log(`✅ Checked product ${productId}`);
-          } else {
-            console.warn(`⚠️ Checkbox for product ${productId} not found`);
+        const targetSet = new Set(bundle.allProducts.map(String));
+
+        // Toggle each product to its desired state via click() so CheckoutChamp's
+        // onclick="checkBoxChange(attributes)" handler fires and the cart updates.
+        document.querySelectorAll('input[name="product"]').forEach(cb => {
+          const shouldBeChecked = targetSet.has(cb.value);
+          if (cb.checked !== shouldBeChecked) {
+            cb.click();
+          }
+          if (shouldBeChecked) {
+            cb.setAttribute('variantvalue', '336');
+            console.log(`✅ Checked product ${cb.value}`);
           }
         });
 
@@ -2691,10 +2692,16 @@
         if (window.updateProductVariants) {
           setTimeout(() => window.updateProductVariants(), 100);
         }
+        } finally {
+          _inSelectBundle = false;
+        }
       }
 
       // Page load default selection - MULTIPLE CHECKS
       document.addEventListener('DOMContentLoaded', () => {
+        // Reset checked state so selectBundle(3) will fire click() on each item
+        // and notify CheckoutChamp's checkBoxChange handler.
+        document.querySelectorAll('input[name="product"]').forEach(cb => { cb.checked = false; });
         selectBundle(3);
 
         // Force check color group 3 visibility multiple times
