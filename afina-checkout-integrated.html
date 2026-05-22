@@ -377,9 +377,9 @@
             </div>
 
             <!-- Hidden checkboxes for combo products -->
-            <input type="checkbox" name="product" value="146" style="display:none;" variantvalue="336">
-            <input type="checkbox" name="product" value="148" style="display:none;" variantvalue="336">
-            <input type="checkbox" name="product" value="149" style="display:none;" variantvalue="336">
+            <input type="checkbox" name="product" value="146" style="display:none;" variantvalue="336" onclick="checkBoxChange(attributes)" opencheckboxsection="">
+            <input type="checkbox" name="product" value="148" style="display:none;" variantvalue="336" onclick="checkBoxChange(attributes)" opencheckboxsection="">
+            <input type="checkbox" name="product" value="149" style="display:none;" variantvalue="336" onclick="checkBoxChange(attributes)" opencheckboxsection="">
 
             <div class="filter-toggle" id="filterToggle" data-layer-name="Box">
               <div
@@ -2700,14 +2700,15 @@
         }
       }
 
-      // Page load default selection - MULTIPLE CHECKS
+      // Page load default selection.
+      // CheckoutChamp restores cart state from its session AFTER DOMContentLoaded,
+      // which re-checks DOM checkboxes for products in its prior-session cart.
+      // We run selectBundle(3) initially AND again on window.load (+ delays) so
+      // any products CheckoutChamp restored that aren't in the Buy 3 bundle get
+      // their click event dispatched, removing them from the cart.
       document.addEventListener('DOMContentLoaded', () => {
-        // Reset checked state so selectBundle(3) will fire click() on each item
-        // and notify CheckoutChamp's checkBoxChange handler.
-        document.querySelectorAll('input[name="product"]').forEach(cb => { cb.checked = false; });
         selectBundle(3);
 
-        // Force check color group 3 visibility multiple times
         setTimeout(() => {
           const group3 = document.getElementById('colorGroup3Wrap');
           if (group3) group3.style.display = 'block';
@@ -2717,6 +2718,11 @@
           const group3 = document.getElementById('colorGroup3Wrap');
           if (group3) group3.style.display = 'block';
         }, 500);
+      });
+
+      window.addEventListener('load', () => {
+        setTimeout(() => selectBundle(currentQty), 300);
+        setTimeout(() => selectBundle(currentQty), 1200);
       });
 
       // ============================================
