@@ -2673,7 +2673,6 @@
         if (group3) {
           group3.style.display = qty >= 3 ? 'block' : 'none';
           group3.style.visibility = 'visible';
-          console.log(`🎨 Color Group 3 visibility: ${qty >= 3 ? 'SHOW' : 'HIDE'}`);
         }
         if (mobileGroup3) {
           mobileGroup3.style.display = qty >= 3 ? 'block' : 'none';
@@ -2754,7 +2753,6 @@
 
         if (checkedProducts[group - 1]) {
           checkedProducts[group - 1].setAttribute('variantvalue', variantId);
-          console.log(`🎨 Desktop Color ${group} → ${color} (Variant ${variantId}) → Product ${checkedProducts[group - 1].value}`);
         }
 
         // Update variants
@@ -2794,7 +2792,6 @@
 
         if (checkedProducts[num - 1]) {
           checkedProducts[num - 1].setAttribute('variantvalue', variantId);
-          console.log(`🎨 Mobile Color ${num} → ${color} (Variant ${variantId}) → Product ${checkedProducts[num - 1].value}`);
         }
 
         // Update variants
@@ -2814,7 +2811,6 @@
           const group3 = document.getElementById('colorGroup3Wrap');
           if (group3) {
             group3.style.display = 'block';
-            console.log('🎨 Forced Color Group 3 visible on load');
           }
         }, 800);
       });
@@ -2862,7 +2858,6 @@
         });
 
         phoneInput.addEventListener("blur", () => {
-          console.log(iti.getNumber());
         });
       }
 
@@ -2897,7 +2892,6 @@
       (function() {
         'use strict';
 
-        console.log('🚀 Variant + Cart Integration Loading...');
 
         const VARIANT_MAP = {
           'Chrome': 336,
@@ -2950,7 +2944,6 @@
           const color2 = getSelectedColor(2) || 'Nickel';
           const color3 = getSelectedColor(3) || 'Black';
 
-          console.log(`📦 Package: ${packageId} | Colors: ${color1}, ${color2}, ${color3}`);
 
           // Update each product checkbox
           product.items.forEach((productId, index) => {
@@ -2961,7 +2954,6 @@
             const checkbox = document.querySelector(`input[name="product"][value="${productId}"]`);
             if (checkbox) {
               checkbox.setAttribute('variantvalue', variantId);
-              console.log(`✅ Product ${productId} → Variant ${variantId} (${color})`);
             }
           });
 
@@ -2972,8 +2964,6 @@
             btn.setAttribute('variantvalue', firstVariant);
           });
 
-          console.log(`🔘 Buttons updated → Variant ${firstVariant}`);
-          console.log(`🛒 CheckoutChamp will handle cart display automatically`);
 
           // CheckoutChamp will update cart automatically - NO custom cart generation
         };
@@ -2981,7 +2971,6 @@
         // Run on load
         window.addEventListener('load', function() {
           setTimeout(() => {
-            console.log('🎯 Initial variant + cart update...');
             window.updateProductVariants();
           }, 1000);
 
@@ -2999,14 +2988,12 @@
           setTimeout(() => window.updateProductVariants(), 800);
         }
 
-        console.log('✅ Variant + Cart Integration Ready');
       })();
     </script>
     <script script-type="user-script">
       (function() {
         'use strict';
 
-        console.log('🚀 Integration Starting...');
 
         // ============================================
         // CONFIGURATION
@@ -3051,7 +3038,6 @@
         // ============================================
 
         function updateColorGroupsVisibility(qty) {
-          console.log(`🎨 Showing ${qty} color group(s)`);
 
           // Show/hide each group
           for (let i = 1; i <= 3; i++) {
@@ -3062,10 +3048,8 @@
               if (i <= qty) {
                 groupEl.style.display = 'block';
                 groupEl.style.visibility = 'visible';
-                console.log(`✅ Group ${i} (${groupId}): VISIBLE`);
               } else {
                 groupEl.style.display = 'none';
-                console.log(`❌ Group ${i} (${groupId}): HIDDEN`);
               }
             }
           }
@@ -3092,7 +3076,6 @@
         function updateProductVariants() {
           const product = getActivePackage();
 
-          console.log(`📦 Active Package: Buy ${product.qty}`);
 
           // Update color group visibility
           updateColorGroupsVisibility(product.qty);
@@ -3104,7 +3087,6 @@
             state.selectedColors[3] || 'Black'
           ];
 
-          console.log(`🎨 Selected Colors: ${colors.join(', ')}`);
 
           // Update each product checkbox with variant
           product.items.forEach((productId, index) => {
@@ -3114,7 +3096,6 @@
             const checkbox = document.querySelector(`input[name="product"][value="${productId}"]`);
             if (checkbox) {
               checkbox.setAttribute('variantvalue', variantId);
-              console.log(`✅ Product ${productId} → Variant ${variantId} (${color})`);
             }
           });
 
@@ -3125,8 +3106,6 @@
             btn.setAttribute('variantvalue', firstVariant);
           });
 
-          console.log(`🔘 Buttons updated → Variant ${firstVariant}`);
-          console.log(`🛒 CheckoutChamp will handle cart display automatically`);
 
           // CheckoutChamp's dynamic pricing will handle the cart - NO custom cart generation
         }
@@ -3157,7 +3136,6 @@
             labelSpan.textContent = color;
           }
 
-          console.log(`🎨 Color ${group} → ${color}`);
 
           // Update variants and cart
           setTimeout(() => updateProductVariants(), 100);
@@ -3190,7 +3168,6 @@
           if (color === 'Black') colorHex = '#333';
           select.style.backgroundImage = `radial-gradient(circle, ${colorHex} 0%, ${colorHex} 60%, transparent 61%)`;
 
-          console.log(`🎨 Mobile Color ${num} → ${color}`);
 
           // Update variants
           setTimeout(() => updateProductVariants(), 100);
@@ -3201,7 +3178,6 @@
         // ============================================
 
         function handleProductChange() {
-          console.log('📦 Product selection changed');
           setTimeout(() => updateProductVariants(), 100);
         }
 
@@ -3290,7 +3266,6 @@
         // ============================================
 
         function initialize() {
-          console.log('🎯 Initializing...');
 
           // Start timer
           updateTimer();
@@ -3307,7 +3282,6 @@
 
           // Initial update
           setTimeout(() => {
-            console.log('🎯 Initial variant update...');
             updateProductVariants();
           }, 500);
 
@@ -3316,7 +3290,6 @@
             updateProductVariants();
           }, 1500);
 
-          console.log('✅ Integration Ready!');
         }
 
         // ============================================
