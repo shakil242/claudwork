@@ -2626,6 +2626,17 @@
       };
 
       let _inSelectBundle = false;
+      function _logCheckedState(label) {
+        const checked = Array.from(document.querySelectorAll('input[name="product"]:checked')).map(cb => cb.value);
+        console.log(`🔍 [${label}] DOM checked: [${checked.join(', ')}]`);
+      }
+      function _notifyCheckoutChamp(cb) {
+        // Try direct call first (bypasses synthetic-event isTrusted filters).
+        if (typeof window.checkBoxChange === 'function') {
+          try { window.checkBoxChange.call(cb, cb.attributes); return; } catch (e) {}
+        }
+        cb.dispatchEvent(new MouseEvent('click', { bubbles: false, cancelable: true }));
+      }
       function selectBundle(qty) {
         if (_inSelectBundle) return;
         _inSelectBundle = true;
@@ -2640,22 +2651,22 @@
         }
 
         const targetSet = new Set(bundle.allProducts.map(String));
+        _logCheckedState(`selectBundle(${qty}) BEFORE`);
 
-        // Set the desired checked state directly, then fire a non-bubbling
-        // click so CheckoutChamp's onclick="checkBoxChange(attributes)" handler
-        // runs without the click bubbling up to the bundle-option label (which
-        // would re-enter selectBundle or re-toggle via the label's for=).
         document.querySelectorAll('input[name="product"]').forEach(cb => {
           const shouldBeChecked = targetSet.has(cb.value);
           if (cb.checked !== shouldBeChecked) {
             cb.checked = shouldBeChecked;
-            cb.dispatchEvent(new MouseEvent('click', { bubbles: false, cancelable: true }));
+            _notifyCheckoutChamp(cb);
+            console.log(`${shouldBeChecked ? '➕' : '➖'} Toggled product ${cb.value} → ${shouldBeChecked ? 'CHECKED' : 'UNCHECKED'}`);
           }
           if (shouldBeChecked) {
             cb.setAttribute('variantvalue', '336');
             console.log(`✅ Checked product ${cb.value}`);
           }
         });
+
+        _logCheckedState(`selectBundle(${qty}) AFTER`);
 
         // Update bundle option styling
         document.querySelectorAll('.bundle-option').forEach((opt, idx) => {
@@ -2720,8 +2731,9 @@
       });
 
       window.addEventListener('load', () => {
-        setTimeout(() => selectBundle(currentQty), 300);
-        setTimeout(() => selectBundle(currentQty), 1200);
+        setTimeout(() => { _logCheckedState('load+300 (pre selectBundle)'); selectBundle(currentQty); }, 300);
+        setTimeout(() => { _logCheckedState('load+1200 (pre selectBundle)'); selectBundle(currentQty); }, 1200);
+        setTimeout(() => _logCheckedState('load+3000 (idle)'), 3000);
       });
 
       // ============================================
