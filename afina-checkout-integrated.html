@@ -3224,41 +3224,11 @@
         // ============================================
         // UPDATE CART IN ORDER SUMMARY
         // ============================================
-        function updateCartDisplay() {
-          const packageId = getActivePackage();
-          const product = PRODUCT_CONFIG[packageId];
-
-          if (!product) return;
-
-          const color1 = getSelectedColor(1) || 'Chrome';
-          const color2 = getSelectedColor(2) || 'Nickel';
-          const color3 = getSelectedColor(3) || 'Black';
-
-          const selectedColors = [color1, color2, color3];
-
-          // Find cart container
-          const cartContainer = document.getElementById('cc-id-TwkSU3UAm4kh');
-          if (!cartContainer) return;
-
-          // Clear existing cart items
-          cartContainer.innerHTML = '';
-
-          // Generate cart rows based on quantity
-          for (let i = 0; i < product.qty; i++) {
-            const color = selectedColors[i];
-            const itemNumber = i + 1;
-
-            const cartRow = document.createElement('div');
-            cartRow.className = 'product-item';
-            cartRow.innerHTML = `
-              <div class="product-details"><div class="product-name">B42 Headphones - ${color}</div><div class="product-color">Color: ${color}</div></div><div class="product-price">$79.00</div>
-            `;
-
-            cartContainer.appendChild(cartRow);
-          }
-
-          console.log(`🛒 Cart updated: ${product.qty} items - ${selectedColors.slice(0, product.qty).join(', ')}`);
-        }
+        // ============================================
+        // CART DISPLAY - LET CHECKOUTCHAMP HANDLE IT
+        // ============================================
+        // Removed custom cart generation - CheckoutChamp's dynamic pricing will handle this
+        // The cart will update automatically based on product checkboxes and variant values
 
         // ============================================
         // UPDATE PRODUCT VARIANTS
@@ -3296,9 +3266,9 @@
           });
 
           console.log(`🔘 Buttons updated → Variant ${firstVariant}`);
+          console.log(`🛒 CheckoutChamp will handle cart display automatically`);
 
-          // UPDATE THE CART DISPLAY
-          updateCartDisplay();
+          // CheckoutChamp will update cart automatically - NO custom cart generation
         };
 
         // Run on load
