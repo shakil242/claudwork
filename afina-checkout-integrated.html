@@ -2764,7 +2764,38 @@
           const group3 = document.getElementById('colorGroup3Wrap');
           if (group3) group3.style.display = 'block';
         }, 500);
+
+        initFilterAutoRefill();
       });
+
+      // ============================================
+      // FILTER AUTO-REFILL TOGGLE — swaps bundle prices
+      // ============================================
+      // ON  (subscribe / save 20%): Buy3 $69.95, Buy2 $84.95, Buy1 $99.95
+      // OFF (one-time):             Buy3 $99.58, Buy2 $107.40, Buy1 $129.85
+      const PRICE_REGULAR = { 3: 199.85, 2: 159.85, 1: 129.85 };
+      const PRICE_AUTOREFILL_ON  = { 3: 69.95, 2: 84.95, 1: 99.95 };
+      const PRICE_AUTOREFILL_OFF = { 3: 99.58, 2: 107.40, 1: 129.85 };
+      const BUNDLE_PRICE_ID = {
+        3: 'cc-id-S3LWOwAhsF0y',
+        2: 'cc-id-ymr1fUTImukZ',
+        1: 'cc-id-M5Z5YMRWwEBx'
+      };
+      function fmt(n) { return '$' + n.toFixed(2); }
+      function applyAutoRefillPrices(isOn) {
+        const prices = isOn ? PRICE_AUTOREFILL_ON : PRICE_AUTOREFILL_OFF;
+        for (const qty of [1, 2, 3]) {
+          const el = document.getElementById(BUNDLE_PRICE_ID[qty]);
+          if (el) el.textContent = fmt(prices[qty]);
+        }
+      }
+      function initFilterAutoRefill() {
+        const toggle = document.getElementById('cc-id-wZQx9dANvwyR');
+        if (!toggle) return;
+        applyAutoRefillPrices(toggle.checked);
+        toggle.addEventListener('change', () => applyAutoRefillPrices(toggle.checked));
+        toggle.addEventListener('click', () => setTimeout(() => applyAutoRefillPrices(toggle.checked), 0));
+      }
 
       // Wait for CheckoutChamp's checkBoxChange to actually be defined,
       // then hard-reset the cart: notify-uncheck every product (clears any
