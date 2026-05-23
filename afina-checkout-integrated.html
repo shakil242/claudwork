@@ -2766,30 +2766,47 @@
         }, 500);
       });
 
-      // CheckoutChamp's checkBoxChange handler may not be defined until after
-      // window.load finishes. Force-click the active bundle's products again
-      // so the cart populates on first page view.
+      // Wait for CheckoutChamp's checkBoxChange to actually be defined,
+      // then hard-reset the cart: notify-uncheck every product (clears any
+      // prior-session items CheckoutChamp restored), then notify-check the
+      // active bundle. Without this we'd sometimes see 5 items on reload.
+      function _waitForCheckoutChamp(cb, attempts) {
+        if (attempts === undefined) attempts = 15;
+        if (typeof window.checkBoxChange === 'function' || attempts <= 0) {
+          cb();
+          return;
+        }
+        setTimeout(() => _waitForCheckoutChamp(cb, attempts - 1), 200);
+      }
       window.addEventListener('load', () => {
-        setTimeout(() => {
-          const bundle = BUNDLE_CONFIG[currentQty];
-          if (!bundle) return;
-          const targetSet = new Set(bundle.allProducts.map(String));
+        _waitForCheckoutChamp(() => {
+          // Round 1: tell CheckoutChamp every product is unchecked
           document.querySelectorAll('input[name="product"]').forEach(cb => {
-            if (targetSet.has(cb.value)) {
-              cb.setAttribute('variantvalue', cb.getAttribute('variantvalue') || '336');
-              if (!cb.checked) cb.checked = true;
-              _notifyCheckoutChamp(cb);
-              console.log(`🔁 Force-clicked product ${cb.value}`);
-            }
+            cb.checked = false;
+            _notifyCheckoutChamp(cb);
           });
-        }, 600);
+          // Round 2: check the products for the active bundle and notify
+          setTimeout(() => {
+            const bundle = BUNDLE_CONFIG[currentQty];
+            if (!bundle) return;
+            const targetSet = new Set(bundle.allProducts.map(String));
+            document.querySelectorAll('input[name="product"]').forEach(cb => {
+              if (targetSet.has(cb.value)) {
+                cb.setAttribute('variantvalue', cb.getAttribute('variantvalue') || '336');
+                cb.checked = true;
+                _notifyCheckoutChamp(cb);
+                console.log(`🔁 Force-clicked product ${cb.value}`);
+              }
+            });
+          }, 150);
+        });
       });
 
 
       // ============================================
       // COLOR SELECTION (Desktop)
       // ============================================
-      const VARIANT_MAP = { 'Gray': 336, 'Royal Blue': 337, 'Cool Mint': 338 };
+      const VARIANT_MAP = { 'Gray': 336, 'Cool Mint': 337, 'Royal Blue': 338 };
 
       function selectColor(group, color, el) {
         colors[group] = color;
