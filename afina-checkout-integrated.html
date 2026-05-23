@@ -2631,6 +2631,22 @@
         }
         cb.dispatchEvent(new MouseEvent('click', { bubbles: false, cancelable: true }));
       }
+      // Change a checked product's variant by removing-then-readding it in
+      // CheckoutChamp's cart. Setting variantvalue on a checked checkbox without
+      // this dance causes CheckoutChamp to add a new line per variant change.
+      function _setVariantAndNotify(cb, variantId) {
+        const newVal = String(variantId);
+        if (cb.getAttribute('variantvalue') === newVal) return;
+        if (cb.checked) {
+          cb.checked = false;
+          _notifyCheckoutChamp(cb);
+          cb.setAttribute('variantvalue', newVal);
+          cb.checked = true;
+          _notifyCheckoutChamp(cb);
+        } else {
+          cb.setAttribute('variantvalue', newVal);
+        }
+      }
       function selectBundle(qty) {
         if (_inSelectBundle) return;
         _inSelectBundle = true;
@@ -2746,7 +2762,7 @@
         const variantId = VARIANT_MAP[color] || 336;
 
         if (checkedProducts[group - 1]) {
-          checkedProducts[group - 1].setAttribute('variantvalue', variantId);
+          _setVariantAndNotify(checkedProducts[group - 1], variantId);
         }
 
         // Update variants
@@ -2785,7 +2801,7 @@
         const variantId = VARIANT_MAP[color] || 336;
 
         if (checkedProducts[num - 1]) {
-          checkedProducts[num - 1].setAttribute('variantvalue', variantId);
+          _setVariantAndNotify(checkedProducts[num - 1], variantId);
         }
 
         // Update variants
@@ -2947,7 +2963,7 @@
 
             const checkbox = document.querySelector(`input[name="product"][value="${productId}"]`);
             if (checkbox) {
-              checkbox.setAttribute('variantvalue', variantId);
+              _setVariantAndNotify(checkbox, variantId);
             }
           });
 
@@ -3088,7 +3104,9 @@
             const variantId = CONFIG.variants[color] || 336;
 
             const checkbox = document.querySelector(`input[name="product"][value="${productId}"]`);
-            if (checkbox) {
+            if (checkbox && typeof _setVariantAndNotify === 'function') {
+              _setVariantAndNotify(checkbox, variantId);
+            } else if (checkbox) {
               checkbox.setAttribute('variantvalue', variantId);
             }
           });
