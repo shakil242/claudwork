@@ -178,12 +178,9 @@
                 id="cc-id-KwD4pNdeTcwS"
                 ><div class="bundle-option-header" id="cc-id-pTr1ybycqtel">
                   <input
-                    name="product"
-                    value="147"
-                    type="checkbox"
+                    type="radio"
+                    name="bundle"
                     id="cc-id-giLXM5U4Urcf"
-                    onclick="checkBoxChange(attributes)"
-                    opencheckboxsection=""
                   /><span class="bundle-label" id="cc-id-qO3lYq5qVfS5"
                     >Buy 3</span
                   ><span id="cc-id-G0doAWwGJQ4h">:</span
@@ -256,12 +253,9 @@
                 id="cc-id-yM5CTnc2CFyT"
                 ><div class="bundle-option-header" id="cc-id-7GSD30WACGqF">
                   <input
-                    name="product"
-                    value="145"
-                    type="checkbox"
+                    type="radio"
+                    name="bundle"
                     id="cc-id-BxXYr7iFa8Ev"
-                    onclick="checkBoxChange(attributes)"
-                    opencheckboxsection=""
                   /><span class="bundle-label" id="cc-id-qFggeQgubteX"
                     >Buy 2</span
                   ><span id="cc-id-4ieJb7oKh9vD">:</span
@@ -323,12 +317,9 @@
                 for="cc-id-kkxb0IXytybR"
                 ><div class="bundle-option-header" id="cc-id-IDqIQSEqqqDE">
                   <input
-                    name="product"
-                    value="144"
-                    type="checkbox"
+                    type="radio"
+                    name="bundle"
                     id="cc-id-kkxb0IXytybR"
-                    onclick="checkBoxChange(attributes)"
-                    opencheckboxsection=""
                   /><span class="bundle-label" id="cc-id-NRX6At6AwFKm"
                     >Buy 1</span
                   ><span id="cc-id-TzgIvGONcFgP">:</span
@@ -375,8 +366,11 @@
               >
             </div>
 
-            <!-- Hidden checkboxes for combo products -->
+            <!-- Hidden product checkboxes — these are the actual CheckoutChamp products -->
+            <input type="checkbox" name="product" value="144" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
+            <input type="checkbox" name="product" value="145" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
             <input type="checkbox" name="product" value="146" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
+            <input type="checkbox" name="product" value="147" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
             <input type="checkbox" name="product" value="148" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
             <input type="checkbox" name="product" value="149" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
 
@@ -2647,6 +2641,12 @@
           cb.setAttribute('variantvalue', newVal);
         }
       }
+      // Maps Buy 3 / 2 / 1 → the visible radio's id.
+      const BUNDLE_RADIO_ID = {
+        3: 'cc-id-giLXM5U4Urcf',
+        2: 'cc-id-BxXYr7iFa8Ev',
+        1: 'cc-id-kkxb0IXytybR'
+      };
       function selectBundle(qty) {
         if (_inSelectBundle) return;
         _inSelectBundle = true;
@@ -2659,8 +2659,13 @@
           return;
         }
 
-        const targetSet = new Set(bundle.allProducts.map(String));
+        // 1. Set the matching radio checked (the label click usually does this
+        //    natively, but we also support programmatic selectBundle calls).
+        const targetRadio = document.getElementById(BUNDLE_RADIO_ID[qty]);
+        if (targetRadio) targetRadio.checked = true;
 
+        // 2. Force-click the hidden product checkboxes to match the bundle.
+        const targetSet = new Set(bundle.allProducts.map(String));
         document.querySelectorAll('input[name="product"]').forEach(cb => {
           const shouldBeChecked = targetSet.has(cb.value);
           if (cb.checked !== shouldBeChecked) {
@@ -2671,10 +2676,10 @@
           }
         });
 
-        // Update bundle option styling
-        document.querySelectorAll('.bundle-option').forEach((opt, idx) => {
-          const cb = opt.querySelector('input[name="product"]');
-          if (cb && bundle.allProducts.includes(parseInt(cb.value))) {
+        // 3. Bundle option styling.
+        document.querySelectorAll('.bundle-option').forEach(opt => {
+          const radio = opt.querySelector('input[type="radio"][name="bundle"]');
+          if (radio && radio.id === BUNDLE_RADIO_ID[qty]) {
             opt.classList.add('selected');
           } else {
             opt.classList.remove('selected');
