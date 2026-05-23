@@ -184,7 +184,6 @@
                     id="cc-id-giLXM5U4Urcf"
                     onclick="checkBoxChange(attributes)"
                     opencheckboxsection=""
-                    checked=""
                   /><span class="bundle-label" id="cc-id-qO3lYq5qVfS5"
                     >Buy 3</span
                   ><span id="cc-id-G0doAWwGJQ4h">:</span
@@ -377,9 +376,9 @@
             </div>
 
             <!-- Hidden checkboxes for combo products -->
-            <input type="checkbox" name="product" value="146" style="display:none;" variantvalue="336" onclick="checkBoxChange(attributes)" opencheckboxsection="">
-            <input type="checkbox" name="product" value="148" style="display:none;" variantvalue="336" onclick="checkBoxChange(attributes)" opencheckboxsection="">
-            <input type="checkbox" name="product" value="149" style="display:none;" variantvalue="336" onclick="checkBoxChange(attributes)" opencheckboxsection="">
+            <input type="checkbox" name="product" value="146" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
+            <input type="checkbox" name="product" value="148" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
+            <input type="checkbox" name="product" value="149" style="display:none;" onclick="checkBoxChange(attributes)" opencheckboxsection="">
 
             <div class="filter-toggle" id="filterToggle" data-layer-name="Box">
               <div
@@ -2626,12 +2625,7 @@
       };
 
       let _inSelectBundle = false;
-      function _logCheckedState(label) {
-        const checked = Array.from(document.querySelectorAll('input[name="product"]:checked')).map(cb => cb.value);
-        console.log(`🔍 [${label}] DOM checked: [${checked.join(', ')}]`);
-      }
       function _notifyCheckoutChamp(cb) {
-        // Try direct call first (bypasses synthetic-event isTrusted filters).
         if (typeof window.checkBoxChange === 'function') {
           try { window.checkBoxChange.call(cb, cb.attributes); return; } catch (e) {}
         }
@@ -2643,7 +2637,6 @@
         try {
         currentQty = qty;
 
-        // Get the bundle config for this qty
         const bundle = BUNDLE_CONFIG[qty];
         if (!bundle) {
           console.error(`❌ No bundle config for qty ${qty}`);
@@ -2651,22 +2644,16 @@
         }
 
         const targetSet = new Set(bundle.allProducts.map(String));
-        _logCheckedState(`selectBundle(${qty}) BEFORE`);
 
         document.querySelectorAll('input[name="product"]').forEach(cb => {
           const shouldBeChecked = targetSet.has(cb.value);
           if (cb.checked !== shouldBeChecked) {
+            if (shouldBeChecked) cb.setAttribute('variantvalue', '336');
             cb.checked = shouldBeChecked;
             _notifyCheckoutChamp(cb);
-            console.log(`${shouldBeChecked ? '➕' : '➖'} Toggled product ${cb.value} → ${shouldBeChecked ? 'CHECKED' : 'UNCHECKED'}`);
-          }
-          if (shouldBeChecked) {
-            cb.setAttribute('variantvalue', '336');
-            console.log(`✅ Checked product ${cb.value}`);
+            console.log(`${shouldBeChecked ? '✅' : '➖'} Product ${cb.value} → ${shouldBeChecked ? 'CHECKED' : 'UNCHECKED'}`);
           }
         });
-
-        _logCheckedState(`selectBundle(${qty}) AFTER`);
 
         // Update bundle option styling
         document.querySelectorAll('.bundle-option').forEach((opt, idx) => {
@@ -2730,11 +2717,6 @@
         }, 500);
       });
 
-      window.addEventListener('load', () => {
-        setTimeout(() => { _logCheckedState('load+300 (pre selectBundle)'); selectBundle(currentQty); }, 300);
-        setTimeout(() => { _logCheckedState('load+1200 (pre selectBundle)'); selectBundle(currentQty); }, 1200);
-        setTimeout(() => _logCheckedState('load+3000 (idle)'), 3000);
-      });
 
       // ============================================
       // COLOR SELECTION (Desktop)
