@@ -29,6 +29,39 @@
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&amp;display=swap"
       rel="stylesheet"
     />
+    <style>
+      /* Bundle selector: render the radio as a square checkbox with a tick.
+         Behaviour stays radio (mutually exclusive via name="bundle"). */
+      input[type="radio"][name="bundle"] {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #c0c0c0;
+        border-radius: 4px;
+        background: #fff;
+        cursor: pointer;
+        position: relative;
+        vertical-align: middle;
+        margin: 0 8px 0 0;
+        flex-shrink: 0;
+      }
+      input[type="radio"][name="bundle"]:checked {
+        background: #000;
+        border-color: #000;
+      }
+      input[type="radio"][name="bundle"]:checked::after {
+        content: '';
+        position: absolute;
+        left: 5px;
+        top: 1px;
+        width: 6px;
+        height: 11px;
+        border: solid #fff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    </style>
   </head>
   <body>
     <div class="top-bar" id="cc-id-IGjYmOmFew4i">
