@@ -1,37 +1,28 @@
 <!--
   ALORA checkout — "Buy X Get Y Free" VISUAL bonus rows for the order summary.
-  Rule (free = quantity - 1):
-    Buy 1 -> 0 free
-    Buy 2 -> 1 free
-    Buy 3 -> 2 free
+
+  In CheckoutChamp the customer buys ONE bundle line item whose name encodes
+  the deal (e.g. "Buy 3 Get 2 Free"). The cart quantity is always 1, so we
+  derive the number of free items from the product text itself:
+
+      "Buy 3 Get 2 Free"  -> 2 free rows
+      "Buy 2 Get 1 Free"  -> 1 free row
+      (no "Get N Free")   -> 0 free rows
+
   Visual only: clones the real product row, labels it "(Free)" at $0.00.
   Does NOT change what CheckoutChamp charges.
 
-  Paste this <script> block into the ALORA CheckoutChamp page (e.g. just
-  before </body>, as a user-script).
+  Paste this <script> block into the ALORA CheckoutChamp page (before </body>).
 -->
 <script script-type="user-script">
   (function () {
     'use strict';
 
-    // Read the purchased quantity from a cart container.
-    function getQty(container) {
-      // Quantity bubble (e.g. <span>Quantity</span><span>3</span>)
-      var bubble = container.querySelector('.cc-cart-prod-qty-bubble');
-      if (bubble) {
-        var spans = bubble.querySelectorAll('span');
-        if (spans.length) {
-          var n = parseInt(spans[spans.length - 1].textContent.trim(), 10);
-          if (!isNaN(n)) return n;
-        }
-      }
-      // Fallback: explicit qty cell / qty display
-      var qEl = container.querySelector('.cc-cart-row-prod-qty');
-      if (qEl) {
-        var q = parseInt(qEl.textContent.trim(), 10);
-        if (!isNaN(q)) return q;
-      }
-      return 1;
+    // Number of free items, parsed from the row text: "...Get 2 Free..."
+    function getFreeCount(row) {
+      var text = (row.textContent || '').replace(/\s+/g, ' ');
+      var m = text.match(/get\s+(\d+)\s+free/i);
+      return m ? parseInt(m[1], 10) : 0;
     }
 
     // Find the real product row inside a container (skip template + bonus rows).
@@ -62,8 +53,7 @@
           continue;
         }
 
-        var qty = getQty(container);
-        var freeCount = Math.max(0, qty - 1);
+        var freeCount = getFreeCount(mainRow);
         var baseTitle = mainRow.querySelector('.cc-cart-row-prod-title').textContent.trim();
         var key = baseTitle + '|' + freeCount;
 
@@ -83,6 +73,10 @@
 
           var title = clone.querySelector('.cc-cart-row-prod-title');
           if (title) title.textContent = baseTitle + ' (Free)';
+
+          // Hide the "Buy 3 Get 2 Free" variant label on the bonus rows.
+          var variants = clone.querySelectorAll('.cc-cart-row-variant');
+          for (var v = 0; v < variants.length; v++) variants[v].textContent = 'Free bonus';
 
           var prices = clone.querySelectorAll('.cc-cart-row-prod-price');
           for (var p = 0; p < prices.length; p++) prices[p].textContent = 'FREE';
