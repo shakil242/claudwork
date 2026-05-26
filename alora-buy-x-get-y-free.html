@@ -1,0 +1,124 @@
+<!--
+  ALORA checkout — "Buy X Get Y Free" VISUAL bonus rows for the order summary.
+  Rule (free = quantity - 1):
+    Buy 1 -> 0 free
+    Buy 2 -> 1 free
+    Buy 3 -> 2 free
+  Visual only: clones the real product row, labels it "(Free)" at $0.00.
+  Does NOT change what CheckoutChamp charges.
+
+  Paste this <script> block into the ALORA CheckoutChamp page (e.g. just
+  before </body>, as a user-script).
+-->
+<script script-type="user-script">
+  (function () {
+    'use strict';
+
+    // Read the purchased quantity from a cart container.
+    function getQty(container) {
+      // Quantity bubble (e.g. <span>Quantity</span><span>3</span>)
+      var bubble = container.querySelector('.cc-cart-prod-qty-bubble');
+      if (bubble) {
+        var spans = bubble.querySelectorAll('span');
+        if (spans.length) {
+          var n = parseInt(spans[spans.length - 1].textContent.trim(), 10);
+          if (!isNaN(n)) return n;
+        }
+      }
+      // Fallback: explicit qty cell / qty display
+      var qEl = container.querySelector('.cc-cart-row-prod-qty');
+      if (qEl) {
+        var q = parseInt(qEl.textContent.trim(), 10);
+        if (!isNaN(q)) return q;
+      }
+      return 1;
+    }
+
+    // Find the real product row inside a container (skip template + bonus rows).
+    function findMainRow(container) {
+      var rows = container.querySelectorAll('.cc-cart-row');
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.classList.contains('bonus-free-row')) continue;
+        var t = row.querySelector('.cc-cart-row-prod-title');
+        if (!t) continue;
+        var txt = t.textContent.trim();
+        if (!txt || txt === 'Name' || txt === 'title') continue; // template placeholders
+        return row;
+      }
+      return null;
+    }
+
+    function injectFree() {
+      var containers = document.querySelectorAll('.cc-cart-container');
+      for (var c = 0; c < containers.length; c++) {
+        var container = containers[c];
+        var mainRow = findMainRow(container);
+        var existing = container.querySelectorAll('.bonus-free-row');
+
+        if (!mainRow) {
+          for (var e = 0; e < existing.length; e++) existing[e].remove();
+          container._bonusKey = '';
+          continue;
+        }
+
+        var qty = getQty(container);
+        var freeCount = Math.max(0, qty - 1);
+        var baseTitle = mainRow.querySelector('.cc-cart-row-prod-title').textContent.trim();
+        var key = baseTitle + '|' + freeCount;
+
+        // Nothing changed -> stop (prevents observer feedback loop).
+        if (container._bonusKey === key && existing.length === freeCount) continue;
+        container._bonusKey = key;
+
+        for (var e2 = 0; e2 < existing.length; e2++) existing[e2].remove();
+
+        var insertAfter = mainRow;
+        for (var k = 0; k < freeCount; k++) {
+          var clone = mainRow.cloneNode(true);
+          clone.classList.add('bonus-free-row');
+          clone.removeAttribute('id');
+          var withIds = clone.querySelectorAll('[id]');
+          for (var x = 0; x < withIds.length; x++) withIds[x].removeAttribute('id');
+
+          var title = clone.querySelector('.cc-cart-row-prod-title');
+          if (title) title.textContent = baseTitle + ' (Free)';
+
+          var prices = clone.querySelectorAll('.cc-cart-row-prod-price');
+          for (var p = 0; p < prices.length; p++) prices[p].textContent = 'FREE';
+
+          var compares = clone.querySelectorAll('.cc-cart-row-prod-compare');
+          for (var cp = 0; cp < compares.length; cp++) compares[cp].textContent = '';
+
+          // Force the cloned bonus row's quantity to 1.
+          var qtyBubbles = clone.querySelectorAll('.cc-cart-prod-qty-bubble');
+          for (var qb = 0; qb < qtyBubbles.length; qb++) {
+            var s = qtyBubbles[qb].querySelectorAll('span');
+            if (s.length) s[s.length - 1].textContent = '1';
+          }
+          var qtyCells = clone.querySelectorAll('.cc-cart-row-prod-qty');
+          for (var qc = 0; qc < qtyCells.length; qc++) qtyCells[qc].textContent = '1';
+
+          insertAfter.parentNode.insertBefore(clone, insertAfter.nextSibling);
+          insertAfter = clone;
+        }
+      }
+    }
+
+    // Debounced runner so the MutationObserver doesn't thrash.
+    var pending = null;
+    function schedule() {
+      if (pending) return;
+      pending = setTimeout(function () { pending = null; injectFree(); }, 120);
+    }
+
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', injectFree);
+    } else {
+      injectFree();
+    }
+    window.addEventListener('load', function () { setTimeout(injectFree, 800); });
+  })();
+</script>
