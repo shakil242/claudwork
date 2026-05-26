@@ -1,19 +1,16 @@
 <!--
-  ALORA checkout — "Buy X Get Y Free" VISUAL bonus rows for the order summary.
+  ALORA checkout — "Buy X Get Y Free" VISUAL order-summary display.
 
-  In CheckoutChamp the customer buys ONE bundle line item whose name encodes
-  the deal (e.g. "Buy 3 Get 2 Free"). The cart quantity is always 1, so we
-  derive the number of free items from the product text itself:
+  The customer buys ONE bundle line item whose name encodes the deal,
+  e.g. "Buy 3 Get 2 Free". We parse the two numbers and display:
 
-      "Buy 3 Get 2 Free"  -> 2 free rows
-      "Buy 2 Get 1 Free"  -> 1 free row
-      (no "Get N Free")   -> 0 free rows
+      main product row : quantity badge = X  (the "Buy X")
+      one FREE row      : quantity badge = Y  (the "Get Y Free"), price FREE
 
-  Each free row is a clone of the real product row:
-    - title  -> "<product> (Free)"
-    - variant text removed, title vertically centered next to the image
-    - quantity bubble copied 1:1 from the main row (same style as item #1)
-    - price  -> FREE
+  Examples:
+      "Buy 2 Get 1 Free" -> main badge 2, free row badge 1
+      "Buy 3 Get 2 Free" -> main badge 3, free row badge 2
+      (no "Get N Free")  -> no free row, badge left as-is
 
   Visual only: does NOT change what CheckoutChamp charges.
   Paste this <script> block into the ALORA CheckoutChamp page (before </body>).
@@ -22,20 +19,29 @@
   (function () {
     'use strict';
 
-    // Number of free items, parsed from the row text: "...Get 2 Free..."
-    function getFreeCount(row) {
+    // Parse { buy, free } from the row text "...Buy 3 Get 2 Free...".
+    function parseDeal(row) {
       var text = (row.textContent || '').replace(/\s+/g, ' ');
-      var m = text.match(/get\s+(\d+)\s+free/i);
-      return m ? parseInt(m[1], 10) : 0;
+      var m = text.match(/buy\s+(\d+)\s+get\s+(\d+)\s+free/i);
+      if (m) return { buy: parseInt(m[1], 10), free: parseInt(m[2], 10) };
+      var g = text.match(/get\s+(\d+)\s+free/i);
+      if (g) return { buy: 1, free: parseInt(g[1], 10) };
+      return { buy: 0, free: 0 };
     }
 
-    // Find the real product row inside a container (skip template + bonus rows).
+    // Set a row's quantity badge, only when it actually differs (avoids loops).
+    function setBadge(row, n) {
+      var b = row.querySelector('.cc-cart-prod-qty-bubble');
+      if (b && b.textContent.trim() !== String(n)) b.textContent = String(n);
+    }
+
+    // Find the real product row (skip the hidden template + bonus rows).
     function findMainRow(container) {
       var rows = container.querySelectorAll('.cc-cart-row');
       for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
         if (row.classList.contains('bonus-free-row')) continue;
-        if (row.offsetParent === null && row.style.display === 'none') continue; // hidden template
+        if (row.style.display === 'none') continue; // hidden template
         var t = row.querySelector('.cc-cart-row-prod-title');
         if (!t) continue;
         var txt = t.textContent.trim();
@@ -43,6 +49,50 @@
         return row;
       }
       return null;
+    }
+
+    function buildFreeRow(mainRow, baseTitle, freeQty) {
+      var clone = mainRow.cloneNode(true);
+      clone.classList.add('bonus-free-row');
+      clone.removeAttribute('id');
+      var withIds = clone.querySelectorAll('[id]');
+      for (var x = 0; x < withIds.length; x++) withIds[x].removeAttribute('id');
+
+      // Title -> "<product> (Free)"
+      var title = clone.querySelector('.cc-cart-row-prod-title');
+      if (title) title.textContent = baseTitle + ' (Free)';
+
+      // Remove the variant block ("Buy X Get Y Free") — no replacement text.
+      var variant = clone.querySelector('.cc-cart-row-variant');
+      if (variant) {
+        var vparent = variant.parentNode;
+        variant.remove();
+        if (vparent && !vparent.children.length) vparent.remove();
+      }
+
+      // Vertically center the single-line title next to the image.
+      var titleWrap = title ? title.closest('.dDm6x') : null;
+      if (titleWrap) {
+        titleWrap.style.display = 'flex';
+        titleWrap.style.flexDirection = 'column';
+        titleWrap.style.justifyContent = 'center';
+        titleWrap.style.minHeight = '64px';
+      }
+
+      // Price -> FREE
+      var prices = clone.querySelectorAll('.cc-cart-row-prod-price');
+      for (var p = 0; p < prices.length; p++) prices[p].textContent = 'FREE';
+      var compares = clone.querySelectorAll('.cc-cart-row-prod-compare');
+      for (var cp = 0; cp < compares.length; cp++) compares[cp].textContent = '';
+
+      // Quantity badge -> same look as main row, value = freeQty.
+      var mainBubble = mainRow.querySelector('.cc-cart-prod-qty-bubble');
+      var cloneBubble = clone.querySelector('.cc-cart-prod-qty-bubble');
+      if (cloneBubble) {
+        if (mainBubble) cloneBubble.className = mainBubble.className;
+        cloneBubble.textContent = String(freeQty);
+      }
+      return clone;
     }
 
     function injectFree() {
@@ -58,63 +108,29 @@
           continue;
         }
 
-        var freeCount = getFreeCount(mainRow);
+        var deal = parseDeal(mainRow);
         var baseTitle = mainRow.querySelector('.cc-cart-row-prod-title').textContent.trim();
         var mainBubble = mainRow.querySelector('.cc-cart-prod-qty-bubble');
         var bubbleClass = mainBubble ? mainBubble.className : '';
+        var want = deal.free > 0 ? 1 : 0;
 
-        // Re-run if the title, free count, OR the main bubble styling changed.
-        var key = baseTitle + '|' + freeCount + '|' + bubbleClass;
-        if (container._bonusKey === key && existing.length === freeCount) continue;
+        // Enforce the main product's quantity badge = "Buy X".
+        if (deal.buy > 0) setBadge(mainRow, deal.buy);
+
+        var key = baseTitle + '|' + deal.buy + '|' + deal.free + '|' + bubbleClass;
+
+        if (container._bonusKey === key && existing.length === want) {
+          // Keep the free row's badge enforced (in case CheckoutChamp reset it).
+          for (var q = 0; q < existing.length; q++) setBadge(existing[q], deal.free);
+          continue;
+        }
         container._bonusKey = key;
 
         for (var e2 = 0; e2 < existing.length; e2++) existing[e2].remove();
 
-        var insertAfter = mainRow;
-        for (var k = 0; k < freeCount; k++) {
-          var clone = mainRow.cloneNode(true);
-          clone.classList.add('bonus-free-row');
-          clone.removeAttribute('id');
-          var withIds = clone.querySelectorAll('[id]');
-          for (var x = 0; x < withIds.length; x++) withIds[x].removeAttribute('id');
-
-          // Title -> "<product> (Free)"
-          var title = clone.querySelector('.cc-cart-row-prod-title');
-          if (title) title.textContent = baseTitle + ' (Free)';
-
-          // Remove the variant block ("Buy 3 Get 2 Free") — no replacement text.
-          var variant = clone.querySelector('.cc-cart-row-variant');
-          if (variant) {
-            var vparent = variant.parentNode;
-            variant.remove();
-            // drop the now-empty wrapper so it doesn't add height
-            if (vparent && !vparent.children.length) vparent.remove();
-          }
-
-          // Vertically center the (now single-line) title next to the image.
-          var titleWrap = title ? title.closest('.dDm6x') : null;
-          if (titleWrap) {
-            titleWrap.style.display = 'flex';
-            titleWrap.style.flexDirection = 'column';
-            titleWrap.style.justifyContent = 'center';
-            titleWrap.style.minHeight = '64px';
-          }
-
-          // Price -> FREE
-          var prices = clone.querySelectorAll('.cc-cart-row-prod-price');
-          for (var p = 0; p < prices.length; p++) prices[p].textContent = 'FREE';
-          var compares = clone.querySelectorAll('.cc-cart-row-prod-compare');
-          for (var cp = 0; cp < compares.length; cp++) compares[cp].textContent = '';
-
-          // Quantity bubble -> copy main row's bubble exactly (same look as item #1).
-          var cloneBubble = clone.querySelector('.cc-cart-prod-qty-bubble');
-          if (cloneBubble) {
-            if (mainBubble) cloneBubble.className = mainBubble.className;
-            cloneBubble.textContent = '1';
-          }
-
-          insertAfter.parentNode.insertBefore(clone, insertAfter.nextSibling);
-          insertAfter = clone;
+        if (want) {
+          var freeRow = buildFreeRow(mainRow, baseTitle, deal.free);
+          mainRow.parentNode.insertBefore(freeRow, mainRow.nextSibling);
         }
       }
     }
