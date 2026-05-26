@@ -1694,11 +1694,46 @@
                     savingsBadge.style.display = 'none';
                 }
 
+                // Coupon discount from CheckoutChamp (discountsObj in sessionStorage)
+                try {
+                    var draw = sessionStorage.getItem('discountsObj');
+                    if (draw) {
+                        var dobj  = JSON.parse(draw);
+                        var pd    = parseFloat(dobj.priceDiscount) || 0;
+                        var sd    = parseFloat(dobj.shipDiscount) || 0;
+                        var cdisc = pd + sd;
+                        var ccode = (Array.isArray(dobj.coupons) && dobj.coupons[0]) || dobj.couponCode || '';
+                        if (cdisc > 0) {
+                            summaryList.innerHTML +=
+                                '<div class="cb2-summary-item" style="color:#16a34a;">' +
+                                    '<span>Coupon' + (ccode ? ' (' + ccode + ')' : '') + '</span>' +
+                                    '<span>-$' + cdisc.toFixed(2) + '</span>' +
+                                '</div>';
+                            grand = Math.max(0, grand - cdisc);
+                        }
+                    }
+                } catch (e) {}
+
                 var fmt = '$' + grand.toFixed(2);
                 if (totalEl) totalEl.textContent = fmt;
                 if (deskBtn) deskBtn.innerHTML = 'Complete registration —<br>' + fmt + ' <span style="font-size:18px;">→</span>';
                 if (mobBtn)  mobBtn.innerHTML  = 'Complete registration — ' + fmt + ' →';
             }
+
+            // ── COUPON CHANGE WATCHER ────────────────────────────────────
+            // applyCoupon/removeCoupon write discountsObj to sessionStorage.
+            // Same-tab writes don't fire the storage event, so poll and
+            // re-render the summary whenever the coupon state changes.
+            (function watchCoupon() {
+                var last = sessionStorage.getItem('discountsObj') || '';
+                setInterval(function () {
+                    var now = sessionStorage.getItem('discountsObj') || '';
+                    if (now !== last) {
+                        last = now;
+                        updateOrderSummary();
+                    }
+                }, 500);
+            })();
 
             // ── ADDON CHECKBOXES ─────────────────────────────────────────
             function bindAddonCheckboxes() {
