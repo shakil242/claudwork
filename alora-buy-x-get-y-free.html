@@ -9,9 +9,13 @@
       "Buy 2 Get 1 Free"  -> 1 free row
       (no "Get N Free")   -> 0 free rows
 
-  Visual only: clones the real product row, labels it "(Free)" at $0.00.
-  Does NOT change what CheckoutChamp charges.
+  Each free row is a clone of the real product row:
+    - title  -> "<product> (Free)"
+    - variant text removed, title vertically centered next to the image
+    - quantity bubble copied 1:1 from the main row (same style as item #1)
+    - price  -> FREE
 
+  Visual only: does NOT change what CheckoutChamp charges.
   Paste this <script> block into the ALORA CheckoutChamp page (before </body>).
 -->
 <script script-type="user-script">
@@ -31,10 +35,11 @@
       for (var i = 0; i < rows.length; i++) {
         var row = rows[i];
         if (row.classList.contains('bonus-free-row')) continue;
+        if (row.offsetParent === null && row.style.display === 'none') continue; // hidden template
         var t = row.querySelector('.cc-cart-row-prod-title');
         if (!t) continue;
         var txt = t.textContent.trim();
-        if (!txt || txt === 'Name' || txt === 'title') continue; // template placeholders
+        if (!txt || txt === 'Name' || txt === 'title') continue; // placeholders
         return row;
       }
       return null;
@@ -55,9 +60,11 @@
 
         var freeCount = getFreeCount(mainRow);
         var baseTitle = mainRow.querySelector('.cc-cart-row-prod-title').textContent.trim();
-        var key = baseTitle + '|' + freeCount;
+        var mainBubble = mainRow.querySelector('.cc-cart-prod-qty-bubble');
+        var bubbleClass = mainBubble ? mainBubble.className : '';
 
-        // Nothing changed -> stop (prevents observer feedback loop).
+        // Re-run if the title, free count, OR the main bubble styling changed.
+        var key = baseTitle + '|' + freeCount + '|' + bubbleClass;
         if (container._bonusKey === key && existing.length === freeCount) continue;
         container._bonusKey = key;
 
@@ -71,27 +78,40 @@
           var withIds = clone.querySelectorAll('[id]');
           for (var x = 0; x < withIds.length; x++) withIds[x].removeAttribute('id');
 
+          // Title -> "<product> (Free)"
           var title = clone.querySelector('.cc-cart-row-prod-title');
           if (title) title.textContent = baseTitle + ' (Free)';
 
-          // Hide the "Buy 3 Get 2 Free" variant label on the bonus rows.
-          var variants = clone.querySelectorAll('.cc-cart-row-variant');
-          for (var v = 0; v < variants.length; v++) variants[v].textContent = 'Free bonus';
+          // Remove the variant block ("Buy 3 Get 2 Free") — no replacement text.
+          var variant = clone.querySelector('.cc-cart-row-variant');
+          if (variant) {
+            var vparent = variant.parentNode;
+            variant.remove();
+            // drop the now-empty wrapper so it doesn't add height
+            if (vparent && !vparent.children.length) vparent.remove();
+          }
 
+          // Vertically center the (now single-line) title next to the image.
+          var titleWrap = title ? title.closest('.dDm6x') : null;
+          if (titleWrap) {
+            titleWrap.style.display = 'flex';
+            titleWrap.style.flexDirection = 'column';
+            titleWrap.style.justifyContent = 'center';
+            titleWrap.style.minHeight = '64px';
+          }
+
+          // Price -> FREE
           var prices = clone.querySelectorAll('.cc-cart-row-prod-price');
           for (var p = 0; p < prices.length; p++) prices[p].textContent = 'FREE';
-
           var compares = clone.querySelectorAll('.cc-cart-row-prod-compare');
           for (var cp = 0; cp < compares.length; cp++) compares[cp].textContent = '';
 
-          // Force the cloned bonus row's quantity to 1.
-          var qtyBubbles = clone.querySelectorAll('.cc-cart-prod-qty-bubble');
-          for (var qb = 0; qb < qtyBubbles.length; qb++) {
-            var s = qtyBubbles[qb].querySelectorAll('span');
-            if (s.length) s[s.length - 1].textContent = '1';
+          // Quantity bubble -> copy main row's bubble exactly (same look as item #1).
+          var cloneBubble = clone.querySelector('.cc-cart-prod-qty-bubble');
+          if (cloneBubble) {
+            if (mainBubble) cloneBubble.className = mainBubble.className;
+            cloneBubble.textContent = '1';
           }
-          var qtyCells = clone.querySelectorAll('.cc-cart-row-prod-qty');
-          for (var qc = 0; qc < qtyCells.length; qc++) qtyCells[qc].textContent = '1';
 
           insertAfter.parentNode.insertBefore(clone, insertAfter.nextSibling);
           insertAfter = clone;
