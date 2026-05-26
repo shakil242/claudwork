@@ -1696,6 +1696,15 @@
 
                 // Coupon discount from CheckoutChamp (discountsObj in sessionStorage)
                 try {
+                    // CheckoutChamp's computed totals are recomputed on apply AND
+                    // remove, so use them to confirm whether a coupon is still active.
+                    var ccTotals = null;
+                    for (var ti = 0; ti < sessionStorage.length; ti++) {
+                        try {
+                            var to = JSON.parse(sessionStorage.getItem(sessionStorage.key(ti)));
+                            if (to && typeof to === 'object' && 'grandTotal' in to && 'discount' in to) { ccTotals = to; break; }
+                        } catch (e) {}
+                    }
                     var draw = sessionStorage.getItem('discountsObj');
                     if (draw) {
                         var dobj  = JSON.parse(draw);
@@ -1703,6 +1712,9 @@
                         var sd    = parseFloat(dobj.shipDiscount) || 0;
                         var cdisc = pd + sd;
                         var ccode = (Array.isArray(dobj.coupons) && dobj.coupons[0]) || dobj.couponCode || '';
+                        // If CheckoutChamp's totals say no discount, the coupon was
+                        // removed even if discountsObj is stale — force it off.
+                        if (ccTotals && (parseFloat(ccTotals.discount) || 0) === 0) cdisc = 0;
                         if (cdisc > 0) {
                             summaryList.innerHTML +=
                                 '<div class="cb2-summary-item" style="color:#16a34a;">' +
@@ -1721,17 +1733,27 @@
             }
 
             // ── COUPON CHANGE WATCHER ────────────────────────────────────
-            // applyCoupon/removeCoupon write discountsObj to sessionStorage.
-            // Same-tab writes don't fire the storage event, so poll and
-            // re-render the summary whenever the coupon state changes.
+            // applyCoupon/removeCoupon update sessionStorage (discountsObj and
+            // CheckoutChamp's totals). Same-tab writes don't fire the storage
+            // event, so poll a snapshot of both and re-render on any change.
             (function watchCoupon() {
-                var last = sessionStorage.getItem('discountsObj') || '';
-                setInterval(function () {
-                    var now = sessionStorage.getItem('discountsObj') || '';
-                    if (now !== last) {
-                        last = now;
-                        updateOrderSummary();
+                function snapshot() {
+                    var d = sessionStorage.getItem('discountsObj') || '';
+                    var t = '';
+                    for (var i = 0; i < sessionStorage.length; i++) {
+                        try {
+                            var o = JSON.parse(sessionStorage.getItem(sessionStorage.key(i)));
+                            if (o && typeof o === 'object' && 'grandTotal' in o && 'discount' in o) {
+                                t = String(o.discount) + '|' + String(o.grandTotal); break;
+                            }
+                        } catch (e) {}
                     }
+                    return d + '::' + t;
+                }
+                var last = snapshot();
+                setInterval(function () {
+                    var now = snapshot();
+                    if (now !== last) { last = now; updateOrderSummary(); }
                 }, 500);
             })();
 
