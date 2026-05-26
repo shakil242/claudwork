@@ -3866,7 +3866,7 @@
         'use strict';
 
         function parseMoney(text) {
-          if (!text) return 0;
+          if (text == null) return 0;
           const n = parseFloat(String(text).replace(/[^0-9.]/g, ''));
           return isNaN(n) ? 0 : n;
         }
@@ -3886,6 +3886,22 @@
           }
         }
 
+        // CheckoutChamp stores a computed totals object (subTotal, grandTotal,
+        // discount, ...) in sessionStorage. Find it by shape rather than key
+        // name so we use the authoritative grandTotal it already calculated.
+        function getTotals() {
+          for (let i = 0; i < sessionStorage.length; i++) {
+            const key = sessionStorage.key(i);
+            try {
+              const o = JSON.parse(sessionStorage.getItem(key));
+              if (o && typeof o === 'object' && 'grandTotal' in o && 'subTotal' in o) {
+                return o;
+              }
+            } catch (e) {}
+          }
+          return null;
+        }
+
         let _lastState = '';
         function refresh() {
           const subtotalEl = document.getElementById('subtotal');
@@ -3895,26 +3911,33 @@
           const couponAmount = document.getElementById('couponAmount');
           if (!grandTotalEl) return;
 
-          const subtotal = parseMoney(subtotalEl ? subtotalEl.textContent : grandTotalEl.textContent);
+          const totals = getTotals();
           const d = getDiscounts();
-          const totalDiscount = d ? (d.price + d.ship) : 0;
+          const discount = d ? (d.price + d.ship) : 0;
 
-          // Skip DOM writes if nothing changed (avoids fighting CheckoutChamp).
-          const stateKey = subtotal + '|' + totalDiscount + '|' + (d ? d.code : '');
+          // Prefer CheckoutChamp's computed grandTotal; fall back to subtotal - discount.
+          const subtotal = totals ? parseMoney(totals.subTotal) : parseMoney(subtotalEl && subtotalEl.textContent);
+          let newTotal;
+          if (totals && totals.grandTotal != null && parseMoney(totals.grandTotal) > 0) {
+            newTotal = parseMoney(totals.grandTotal);
+          } else {
+            newTotal = Math.max(0, subtotal - discount);
+          }
+
+          const stateKey = subtotal + '|' + discount + '|' + newTotal + '|' + (d ? d.code : '');
           if (stateKey === _lastState) return;
           _lastState = stateKey;
 
-          if (d && totalDiscount > 0) {
+          if (d && discount > 0) {
             if (couponRow) couponRow.style.display = 'flex';
             if (couponLabel) couponLabel.textContent = d.code ? `Coupon (${d.code})` : 'Coupon';
-            if (couponAmount) couponAmount.textContent = '-$' + totalDiscount.toFixed(2);
-            const newTotal = Math.max(0, subtotal - totalDiscount);
-            grandTotalEl.textContent = 'USD $' + newTotal.toFixed(2);
-            console.log(`🎟️ Coupon ${d.code} applied: -$${totalDiscount.toFixed(2)} → Total $${newTotal.toFixed(2)}`);
+            if (couponAmount) couponAmount.textContent = '-$' + discount.toFixed(2);
+            console.log(`🎟️ Coupon ${d.code}: -$${discount.toFixed(2)} → Total $${newTotal.toFixed(2)}`);
           } else {
             if (couponRow) couponRow.style.display = 'none';
-            grandTotalEl.textContent = 'USD $' + subtotal.toFixed(2);
           }
+
+          grandTotalEl.textContent = 'USD $' + newTotal.toFixed(2);
         }
 
         // sessionStorage same-tab changes don't fire the storage event, so poll.
