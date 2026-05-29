@@ -346,6 +346,16 @@ margin-top:15px;
   max-width:18px !important; max-height:18px !important;
   flex:0 0 auto !important;
 }
+/* Clean cart-drawer close (X) button — no grey box. */
+cart-drawer .drawer__close,
+.cart-drawer__close,
+#CartDrawer .drawer__close {
+  background:transparent !important;
+  border:0 !important;
+  box-shadow:none !important;
+}
+cart-drawer .drawer__close svg,
+.cart-drawer__close svg { width:2.2rem !important; height:2.2rem !important; }
 </style>
 
 {% unless alora_custom_bundle_rendered %}{% assign alora_custom_bundle_rendered = true %}
@@ -705,10 +715,23 @@ function overrideCartDrawerPrices() {
 }
 
 /* Show the full bundle count (paid + free) in the drawer heading and the
-   header cart bubble, instead of the single real line (1). */
+   header cart bubble. Counts the actual quantities shown in the drawer
+   (paid row + free row) so it's always correct regardless of tier. */
 function overrideCartCount() {
   if (!window._aloraPendingCCId) return;
-  var total = selectedTier === '2' ? 3 : selectedTier === '3' ? 5 : 1;
+  var drawer = document.querySelector('cart-drawer'); if (!drawer) return;
+
+  var total = 0;
+  drawer.querySelectorAll('.cart-items > li').forEach(function(li){
+    var q = li.querySelector('.quantity__input, input[type="number"]');
+    var n = q ? parseInt(q.value, 10) : NaN;
+    if (isNaN(n)) {
+      var b = li.querySelector('.cart-item__quantity .quantity__input, [class*="qty"]');
+      n = b ? parseInt(b.textContent, 10) : 1;
+    }
+    total += (isNaN(n) ? 0 : n);
+  });
+  if (total < 1) total = (selectedTier === '2' ? 3 : selectedTier === '3' ? 5 : 1);
 
   document.querySelectorAll('.drawer__heading, [class*="cart-drawer"] h2, .cart-drawer__heading').forEach(function(el){
     if (!/\d/.test(el.textContent)) return;
