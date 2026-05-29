@@ -652,6 +652,17 @@ drawer.querySelectorAll('.price--end.regular-price').forEach(function(el){ if (e
     });
   }).observe(document.body, { childList: true, subtree: true });
 
+/* Reusable non-clickable quantity stepper, styled like the theme's. */
+function buildStepperHTML(qty) {
+  var MINUS = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor"><path d="M432 256c0 17.7-14.3 32-32 32L48 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l352 0c17.7 0 32 14.3 32 32z"></path></svg>';
+  var PLUS  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor"><path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32V224H48c-17.7 0-32 14.3-32 32s14.3 32 32 32H192V432c0 17.7 14.3 32 32 32s32-14.3 32-32V288H400c17.7 0 32-14.3 32-32s-14.3-32-32-32H256V80z"></path></svg>';
+  return '<quantity-input class="quantity cart-quantity color-background-2 cart-quantity--round-btns" style="--font-size:1.4rem;--border-width:0.1rem;--border-color:#787878;--corner-radius:0.6rem;--container-padding:0em;--input-padding:0.7em;--separator-opacity:0.2;--padding:0.4em;--icon-size:0.7em;">'
+    + '<button class="quantity__button quantity__button--minus no-js-hidden color-background-2" name="minus" type="button" disabled style="pointer-events:none;opacity:.4;">' + MINUS + '</button>'
+    + '<input class="quantity__input" type="number" value="' + qty + '" min="1" readonly aria-label="Quantity">'
+    + '<button class="quantity__button quantity__button--plus no-js-hidden color-background-2" name="plus" type="button" disabled style="pointer-events:none;opacity:.4;">' + PLUS + '</button>'
+    + '</quantity-input>';
+}
+
 function overrideCartDrawerPrices() {
   var map = TIER_MAP[selectedTier]; if (!map) return;
   var price = subOn ? map.subPrice : map.oneTimePrice;
@@ -673,13 +684,23 @@ function overrideCartDrawerPrices() {
       if (!el.closest('s') && !el.closest('[class*="compare"]') && !el.closest('[class*="old"]')) el.textContent = price;
     });
 
-    /* Show the paid quantity; keep the native stepper visible (matches
-       purealora) but inert so the fixed bundle can't be changed. */
+    /* Show the paid quantity. This theme doesn't render a stepper on the real
+       cart line, so inject one (non-clickable) if missing; otherwise update it. */
     var qtyInput = realItem.querySelector('.quantity__input, input[type="number"]');
-    if (qtyInput) { qtyInput.value = paidQty; qtyInput.setAttribute('value', paidQty); qtyInput.readOnly = true; }
-    realItem.querySelectorAll('.quantity__button').forEach(function(b){
-      b.setAttribute('disabled', 'disabled'); b.style.pointerEvents = 'none'; b.style.opacity = '0.35';
-    });
+    if (qtyInput) {
+      qtyInput.value = paidQty; qtyInput.setAttribute('value', paidQty); qtyInput.readOnly = true;
+      realItem.querySelectorAll('.quantity__button').forEach(function(b){
+        b.setAttribute('disabled', 'disabled'); b.style.pointerEvents = 'none'; b.style.opacity = '0.4';
+      });
+    } else {
+      var qc = realItem.querySelector('.cart-item__quantity');
+      if (qc && !qc.querySelector('.quantity__input')) {
+        var w = document.createElement('div');
+        w.className = 'cart-item__quantity-wrapper';
+        w.innerHTML = buildStepperHTML(paidQty);
+        qc.insertBefore(w, qc.firstChild);
+      }
+    }
 
     /* Drop the old custom "Qty: N" pill if a previous version left one. */
     realItem.querySelectorAll('.alora-qty-badge').forEach(function(el){ el.remove(); });
