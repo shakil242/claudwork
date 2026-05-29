@@ -689,6 +689,25 @@ function overrideCartDrawerPrices() {
   }
 
   injectFreeItems();
+  overrideCartCount();
+}
+
+/* Show the full bundle count (paid + free) in the drawer heading and the
+   header cart bubble, instead of the single real line (1). */
+function overrideCartCount() {
+  if (!window._aloraPendingCCId) return;
+  var total = selectedTier === '2' ? 3 : selectedTier === '3' ? 5 : 1;
+
+  document.querySelectorAll('.drawer__heading, [class*="cart-drawer"] h2, .cart-drawer__heading').forEach(function(el){
+    if (!/\d/.test(el.textContent)) return;
+    var next = el.textContent.replace(/\d+/, total);
+    if (el.textContent !== next) el.textContent = next;
+  });
+
+  document.querySelectorAll('.cart-count-bubble span[aria-hidden="true"], .cart-count-bubble > span:first-child, .cart-count').forEach(function(el){
+    if (el.classList.contains('visually-hidden')) return;
+    if (el.textContent.trim() !== String(total)) el.textContent = total;
+  });
 }
 
 function injectFreeItems() {
