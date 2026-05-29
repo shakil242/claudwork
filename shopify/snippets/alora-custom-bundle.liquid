@@ -557,6 +557,25 @@ window._aloraCustomBundleInit = true;
     window.checkoutLoad(e);
   }, true);
 
+  /* Removing either bundle row clears the whole (fixed) bundle. */
+  function clearBundleAndRefresh() {
+    fetch('/cart/clear.js', { method: 'POST' })
+      .then(function() { return fetch('/cart?sections=cart-drawer,cart-icon-bubble'); })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var section = document.getElementById('shopify-section-cart-drawer');
+        if (section && data['cart-drawer']) section.innerHTML = data['cart-drawer'];
+        window._aloraPendingCCId = null;
+      })
+      .catch(function() {});
+  }
+  document.addEventListener('click', function(e) {
+    if (!e.target.closest('.alora-free-remove')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    clearBundleAndRefresh();
+  }, true);
+
 atcBtn.addEventListener('click', function () {
   var map = TIER_MAP[selectedTier];
   if (!map) return;
@@ -639,45 +658,27 @@ function overrideCartDrawerPrices() {
     el.textContent = price;
   });
 
-  /* Override main item price */
-  var realItem = drawer.querySelector('.cart-item, [class*="cart-item"]');
+  /* Override main (paid) item — never the injected free row. */
+  var realItem = drawer.querySelector('.cart-items li.cart-item:not(.alora-free-item), .cart-items li[class*="cart-item"]:not(.alora-free-item)')
+              || drawer.querySelector('.cart-item:not(.alora-free-item)');
   if (realItem) {
-    realItem.querySelectorAll('.price--end .money, .price--end, .money, [class*="price"] .money').forEach(function(el){
-      if (!el.closest('s') && !el.closest('[class*="compare"]') && !el.closest('[class*="was"]')) {
-        el.textContent = price;
-      }
+    var paidQty = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
+
+    /* Total price (skip strikethrough / compare prices). */
+    realItem.querySelectorAll('.price--end.regular-price, .cart-item__final-price, .price--end .money').forEach(function(el){
+      if (!el.closest('s') && !el.closest('[class*="compare"]') && !el.closest('[class*="old"]')) el.textContent = price;
     });
 
-    /* Keep the remove (trash) button so customers can remove the item.
-       Only hide the quantity steppers, since the bundle quantity is fixed. */
-    realItem.querySelectorAll('.quantity__button, button[name="minus"], button[name="plus"], [class*="quantity__button"]').forEach(function(el){ el.style.display = 'none'; });
+    /* Show the paid quantity; keep the native stepper visible (matches
+       purealora) but inert so the fixed bundle can't be changed. */
+    var qtyInput = realItem.querySelector('.quantity__input, input[type="number"]');
+    if (qtyInput) { qtyInput.value = paidQty; qtyInput.setAttribute('value', paidQty); qtyInput.readOnly = true; }
+    realItem.querySelectorAll('.quantity__button').forEach(function(b){
+      b.setAttribute('disabled', 'disabled'); b.style.pointerEvents = 'none'; b.style.opacity = '0.35';
+    });
 
-    /* Qty badge on main item — same position as free item */
-    var paidQty = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
-    if (!realItem.querySelector('.alora-qty-badge')) {
-      var qtyBadge = document.createElement('div');
-      qtyBadge.className = 'alora-qty-badge';
-      qtyBadge.style.cssText = 'display:inline-block;background:#f0faf4;border:1px solid #b2dfc0;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;color:#1a5c2e;margin-top:4px;margin-bottom:4px;';
-      qtyBadge.textContent = 'Qty: ' + paidQty;
-
-      /* Find title element and insert badge right after it */
-      var titleEl = realItem.querySelector(
-        'a[class*="cart-item__name"], [class*="cart-item__name"], ' +
-        '[class*="cart-item__title"], a[class*="name"], [class*="title"]'
-      );
-      if (titleEl && titleEl.parentNode) {
-        titleEl.parentNode.insertBefore(qtyBadge, titleEl.nextSibling);
-      } else {
-        /* Fallback — append to details area */
-        var infoEl = realItem.querySelector('[class*="details"], [class*="info"]') || realItem;
-        infoEl.appendChild(qtyBadge);
-      }
-    }
-
-    var qtyInput = realItem.querySelector('input[type="number"], .quantity__input, [class*="quantity"] input');
-    if (qtyInput) { qtyInput.value = paidQty; qtyInput.setAttribute('value', paidQty); }
-    var qtyDisplay = realItem.querySelector('[class*="quantity__number"]');
-    if (qtyDisplay) qtyDisplay.textContent = paidQty;
+    /* Drop the old custom "Qty: N" pill if a previous version left one. */
+    realItem.querySelectorAll('.alora-qty-badge').forEach(function(el){ el.remove(); });
   }
 
   injectFreeItems();
@@ -690,73 +691,82 @@ function injectFreeItems() {
   drawer.querySelectorAll('.alora-free-item').forEach(function(el){ el.remove(); });
 
   var map = TIER_MAP[selectedTier]; if (!map) return;
-  var freeQty  = selectedTier === '2' ? 1 : selectedTier === '3' ? 2 : 0;
-  var paidQty  = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
-  var label    = selectedTier === '2' ? 'Buy 2, Get 1 Free' : 'Buy 3, Get 2 Free';
+  var freeQty = selectedTier === '2' ? 1 : selectedTier === '3' ? 2 : 0;
+  var paidQty = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
+  var label   = selectedTier === '2' ? 'Buy 2, Get 1 Free' : 'Buy 3, Get 2 Free';
   if (freeQty === 0) return;
 
-  var realItem = drawer.querySelector('.cart-item, [class*="cart-item"]'); if (!realItem) return;
-  var img      = realItem.querySelector('img');
-  var imgSrc   = img ? img.src : '';
-  var titleEl  = realItem.querySelector('a, [class*="cart-item__name"], [class*="cart-item__title"]');
+  var list = drawer.querySelector('.cart-items'); if (!list) return;
+  var realItem = list.querySelector('li.cart-item:not(.alora-free-item), li[class*="cart-item"]:not(.alora-free-item)');
+  if (!realItem) return;
+
+  var img       = realItem.querySelector('img.cart-item__image, .cart-item__media img, img');
+  var imgSrc    = img ? img.getAttribute('src') : '';
+  var titleEl   = realItem.querySelector('.cart-item__name, a[class*="name"], [class*="cart-item__title"]');
   var titleText = titleEl ? titleEl.textContent.trim() : 'Lymphatic Drainage Drops';
 
-  /* Calculate per-bottle price for savings display */
-  var totalNum  = parseFloat((subOn ? map.subPrice : map.oneTimePrice).replace('$',''));
-  var perBottle = (totalNum / paidQty).toFixed(2);
-  var saveTotal = (parseFloat(perBottle) * freeQty).toFixed(2);
+  var total     = parseFloat((subOn ? map.subPrice : map.oneTimePrice).replace(/[^0-9.]/g, ''));
+  var perBottle = total / paidQty;
+  var oldTotal  = perBottle * freeQty;
+  var fmt = function(n){ return '$' + n.toFixed(2); };
 
-  var freeEl = document.createElement('div');
-  freeEl.className = 'alora-free-item';
-  freeEl.style.cssText = 'border-top:1px solid rgba(0,0,0,.08);';
+  /* Native theme SVGs (copied from the store's own cart drawer markup). */
+  var DISCOUNT_SVG = '<svg aria-hidden="true" focusable="false" class="icon icon-discount color-foreground-text" viewBox="0 0 12 12"><path fill-rule="evenodd" clip-rule="evenodd" d="M7 0h3a2 2 0 012 2v3a1 1 0 01-.3.7l-6 6a1 1 0 01-1.4 0l-4-4a1 1 0 010-1.4l6-6A1 1 0 017 0zm2 2a1 1 0 102 0 1 1 0 00-2 0z" fill="currentColor"></path></svg>';
+  var TRASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" aria-hidden="true" focusable="false" class="icon icon-remove"><path d="M14 3h-3.53a3.07 3.07 0 00-.6-1.65C9.44.82 8.8.5 8 .5s-1.44.32-1.87.85A3.06 3.06 0 005.53 3H2a.5.5 0 000 1h1.25v10c0 .28.22.5.5.5h8.5a.5.5 0 00.5-.5V4H14a.5.5 0 000-1zM6.91 1.98c.23-.29.58-.48 1.09-.48s.85.19 1.09.48c.2.24.3.6.36 1.02h-2.9c.05-.42.17-.78.36-1.02zm4.84 11.52h-7.5V4h7.5v9.5z" fill="currentColor"></path><path d="M6.55 5.25a.5.5 0 00-.5.5v6a.5.5 0 001 0v-6a.5.5 0 00-.5-.5zM9.45 5.25a.5.5 0 00-.5.5v6a.5.5 0 001 0v-6a.5.5 0 00-.5-.5z" fill="currentColor"></path></svg>';
+  var MINUS_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor"><path d="M432 256c0 17.7-14.3 32-32 32L48 288c-17.7 0-32-14.3-32-32s14.3-32 32-32l352 0c17.7 0 32 14.3 32 32z"></path></svg>';
+  var PLUS_SVG  = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" fill="currentColor"><path d="M256 80c0-17.7-14.3-32-32-32s-32 14.3-32 32V224H48c-17.7 0-32 14.3-32 32s14.3 32 32 32H192V432c0 17.7 14.3 32 32 32s32-14.3 32-32V288H400c17.7 0 32-14.3 32-32s-14.3-32-32-32H256V80z"></path></svg>';
 
-  freeEl.innerHTML = [
-    '<div style="display:flex;gap:14px;padding:18px 16px;position:relative;">',
-
-      /* Delete icon (hidden/disabled) */
-      '<div style="position:absolute;top:16px;right:16px;width:20px;height:20px;opacity:0.2;pointer-events:none;">',
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>',
-      '</div>',
-
-      /* Image */
-      imgSrc ? '<div style="flex-shrink:0;width:80px;height:80px;border-radius:8px;overflow:hidden;"><img src="'+imgSrc+'" style="width:100%;height:100%;object-fit:cover;" /></div>' : '',
-
-      /* Details */
-      '<div style="flex:1;min-width:0;">',
-
-        /* Title */
-        '<div style="font-size:15px;font-weight:700;color:#111;margin-bottom:4px;padding-right:28px;">'+titleText+'</div>',
-
-        /* Discount tag */
-        '<div style="display:inline-flex;align-items:center;gap:4px;background:#f0f0f0;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#333;margin-bottom:4px;">',
-          '<span>🏷</span><span>'+label+'</span>',
-        '</div>',
-
-        /* Free Shipping */
-        '<div style="font-size:12px;color:#555;margin-bottom:10px;">Free Shipping</div>',
-
-        /* Bottom row: qty + price */
-        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">',
-
-          /* Qty display (no buttons) */
-          '<div style="display:inline-block;background:#f0faf4;border:1px solid #b2dfc0;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;color:#1a5c2e;">',
-            'Qty: '+freeQty+'</div>',
-
-          /* Price block */
-          '<div style="text-align:right;">',
-            '<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">',
-              '<span style="font-size:14px;color:#aaa;text-decoration:line-through;">$'+perBottle+'</span>',
-              '<span style="font-size:16px;font-weight:800;color:#111;">$0.00</span>',
+  var li = document.createElement('li');
+  li.className = 'cart-drawer-item cart-item alora-free-item';
+  li.setAttribute('role', 'row');
+  li.innerHTML = [
+    '<div class="cart-item__media" role="cell">',
+      imgSrc ? '<img class="cart-item__image" src="' + imgSrc + '" alt="" loading="lazy" width="150" height="150">' : '',
+    '</div>',
+    '<div class="cart-drawer-item__right">',
+      '<div class="cart-drawer-item__details-and-delete-btn">',
+        '<div class="cart-item__details" role="cell">',
+          '<h4 class="cart-item__name h4 break">' + titleText + '</h4>',
+          '<div class="cart-item__discounted-prices cart-drawer-item__single-item-prices">',
+            '<span>',
+              '<s class="cart-item__old-price product-option text-color-text">' + fmt(perBottle) + '</s>',
+              '<strong class="cart-item__final-price product-option text-color-accent-1">$0.00</strong>',
+            '</span>',
+            '<div class="cart-drawer__discounts list-unstyled" role="list" aria-label="Discount">',
+              '<div class="badge">' + DISCOUNT_SVG + '<span>' + label + '</span></div>',
             '</div>',
-            '<div style="font-size:12px;color:#2d6a4f;font-weight:600;">(You save $'+saveTotal+')</div>',
           '</div>',
-
+          '<p class="product-option">Free Express Shipping</p>',
+        '</div>',
+        '<div class="cart-drawer-item__cart-remove-button alora-free-remove">',
+          '<button type="button" class="button button--tertiary" aria-label="Remove ' + titleText + '">' + TRASH_SVG + '</button>',
+        '</div>',
+      '</div>',
+      '<div class="cart-drawer-item__quantity-and-prices cart-drawer-item__quantity-and-prices--has-props">',
+        '<div class="cart-item__quantity">',
+          '<div class="cart-item__quantity-wrapper">',
+            '<quantity-input class="quantity cart-quantity color-background-2 cart-quantity--round-btns">',
+              '<button class="quantity__button quantity__button--minus no-js-hidden color-background-2" name="minus" type="button" disabled style="pointer-events:none;opacity:.35;">' + MINUS_SVG + '</button>',
+              '<input class="quantity__input" type="number" value="' + freeQty + '" min="1" readonly aria-label="Quantity">',
+              '<button class="quantity__button quantity__button--plus no-js-hidden color-background-2" name="plus" type="button" disabled style="pointer-events:none;opacity:.35;">' + PLUS_SVG + '</button>',
+            '</quantity-input>',
+          '</div>',
+        '</div>',
+        '<div class="cart-item__totals right" role="cell">',
+          '<div class="cart-item__price-wrapper">',
+            '<div class="cart-item__discounted-prices">',
+              '<s class="cart-item__old-price price--end compare-price color-foreground-text">' + fmt(oldTotal) + '</s>',
+              '<span class="price--end regular-price accent-color-accent-1">$0.00</span>',
+            '</div>',
+            '<span class="cart-drawer-item__saving text-color-text"><strong>(You save ' + fmt(oldTotal) + ')</strong></span>',
+          '</div>',
         '</div>',
       '</div>',
     '</div>'
   ].join('');
 
-  realItem.parentNode.insertBefore(freeEl, realItem.nextSibling);
+  /* Free item listed first, exactly like purealora. */
+  list.insertBefore(li, realItem);
 }
   /* ── Watch for cart drawer opening via header cart icon ── */
   new MutationObserver(function(muts) {
