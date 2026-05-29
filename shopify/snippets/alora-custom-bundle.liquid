@@ -1,0 +1,790 @@
+{% comment %}
+  ══════════════════════════════════════════════════════════════
+  snippets/alora-custom-bundle.liquid
+{% endcomment %}
+
+
+{% assign _bundle_handle = request.path | split: '/products/' | last | split: '?' | first | split: '/' | first %}
+
+{% if _bundle_handle == 'vaginal-probotics' %}
+<style>
+.alora-bundle-bar:hover { border: 2px solid #b400de!important; }
+.alora-bundle-bar.is-selected { border: 2px solid #b400de!important; background: #fed0ff!important; }
+.alora-bundle-bar.is-selected .alora-bundle-radio { background: #b400de!important; box-shadow: 0 0 0 2px #b400de!important; }
+.alora-bundle-radio { box-shadow: 0 0 0 2px #b400de!important; }
+.alora-bundle-badge { background-color: #b400de!important; }
+.alora-bundle-badge::before, .alora-bundle-badge::after { border-bottom-color: #b400de!important; }
+.alora-sub-box { border: 2.5px dashed #b400de!important; }
+.alora-sub-box.is-on { border-color: #b400de!important; background: #fff0ff!important; }
+.alora-sub-box.is-on .alora-sub-chk { background: #b400de!important; border-color: #b400de!important; }
+.alora-atc { background: #b400de!important; }
+.alora-atc:hover { background: #8a00ab!important; }
+.alora-sale-line { background: #e8b0ff!important; }
+.alora-bundle-bar
+{
+      border: 2px solid #b400de!important;
+}
+</style>
+{% endif %}
+{% if _bundle_handle == 'nitric-oxide-support-capsules' %}
+<style>
+.alora-bundle-bar:hover { border: 2px solid #7e0606!important; }
+.alora-bundle-bar.is-selected { border: 2px solid #7e0606!important; background: #fdeaea!important; }
+.alora-bundle-bar.is-selected .alora-bundle-radio { background: #7e0606!important; box-shadow: 0 0 0 2px #7e0606!important; }
+.alora-bundle-radio { box-shadow: 0 0 0 2px #7e0606!important; }
+.alora-bundle-badge { background-color: #7e0606!important; }
+.alora-bundle-badge::before, .alora-bundle-badge::after { border-bottom-color: #7e0606!important; }
+.alora-sub-box { border: 2.5px dashed #7e0606!important; }
+.alora-sub-box.is-on { border-color: #7e0606!important; background: #fdeaea!important; }
+.alora-sub-box.is-on .alora-sub-chk { background: #7e0606!important; border-color: #7e0606!important; }
+.alora-atc { background: #7e0606!important; }
+.alora-atc:hover { background: #8a00ab!important; }
+.alora-sale-line { background: #fdeaea!important; }
+.alora-bundle-bar
+{
+      border: 2px solid #7e0606!important;
+}
+</style>
+{% endif %}
+
+
+
+
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+.alora-bundle-wrap {
+  max-width: 580px;
+  margin: 0 auto;
+  font-family: 'Inter', sans-serif;
+  color: #000000;
+}
+
+/* ── Bundle bars ── */
+.alora-bundle-options { display: flex; flex-direction: column; gap: 6px; }
+
+.alora-bundle-bar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 18px;
+  border: 2px solid #B2CCC0;
+  border-radius: 16px;
+  background: #fff;
+  cursor: pointer;
+  transition: border-color .18s, background .18s;
+}
+.alora-bundle-bar:hover { border: 2px solid #B2CCC0; }
+.alora-bundle-bar.is-selected {
+  border: 2px solid rgba(1, 85, 45, 1);
+  background: #f0faf4;
+}
+
+.alora-bundle-content {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.alora-bundle-info { display: flex; flex-direction: column; gap: 3px; }
+.alora-bundle-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #000000;
+  line-height: 1.2;
+  letter-spacing:normal;
+}
+.alora-bundle-savings {
+      font-size: 13px;
+    color: #555555;
+    font-weight: 500;
+    font-family: Poppins, sans-serif;
+    letter-spacing: normal;
+}
+.alora-bundle-radio {
+  flex-shrink: 0;
+  width: 20px; height: 20px;
+  border: 3px solid #FFF;
+  border-radius: 50%;
+  display: flex!important; align-items: center; justify-content: center;
+  transition: all .18s;
+  box-shadow: 0 0 0 2px rgba(1, 85, 45, 0.3);
+}
+.alora-bundle-bar.is-selected .alora-bundle-radio {
+  background: rgba(1, 85, 45, 1);
+      box-shadow: 0 0 0 2px rgba(1, 85, 45, 1);
+}
+.alora-bundle-bar.is-selected .alora-bundle-radio::after {
+  content: '';
+  background: #fff;
+  border-radius: 50%;
+  display: block;
+}
+
+.alora-bundle-price-col {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.alora-bundle-price-main {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000000;
+  line-height: 1;
+}
+.alora-bundle-price-compare {
+  font-size: 13px;
+  color: #aaa;
+  text-decoration: line-through;
+  font-weight: 400;
+}
+
+.alora-bundle-badge {
+  position: absolute;
+  top: -9px;
+  right: 18px;
+  display: inline-block;
+  margin: 0 8px;
+  padding: 6px 8px;
+  border-bottom-left-radius: 5px;
+  border-bottom-right-radius: 5px;
+  font-family: sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  color: #fff;
+  background-color: rgba(1, 85, 45, 1);
+  letter-spacing: normal;
+  text-transform: initial;
+  white-space: nowrap;
+}
+.alora-bundle-badge::before,
+.alora-bundle-badge::after {
+  display: block;
+  position: absolute;
+  top: 0;
+  width: 0;
+  height: 0;
+  content: "";
+  border-bottom: 8px solid rgba(1, 85, 45, 1);
+  filter: brightness(.7);
+}
+.alora-bundle-badge::before {
+  left: 0;
+  border-left: 8px solid transparent;
+  transform: translateX(-8px);
+}
+.alora-bundle-badge::after {
+  right: 0;
+  border-right: 8px solid transparent;
+  transform: translateX(8px);
+}
+
+.alora-sub-wrap { margin-top: 12px; }
+.alora-sub-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  border: 2.5px dashed #a8c5b0;
+  border-radius: 16px;
+  padding: 11px 16px;
+  cursor: pointer;
+  user-select: none;
+  background: #fff;
+  transition: border-color .18s, background .18s;
+}
+.alora-sub-box.is-on {
+  border-color: #2d6a4f;
+  background: #f0faf4;
+}
+.alora-sub-chk {
+  flex-shrink: 0;
+  width: 22px !important;
+  height: 22px !important;
+  border: 2px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .18s;
+}
+.alora-sub-box.is-on .alora-sub-chk {
+  background: rgb(45, 106, 79);
+  border-color: rgb(45, 106, 79);
+}
+.alora-sub-chk svg {
+  display: none;
+  width: 13px !important; height: 13px !important;
+  stroke: #fff; fill: none;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.alora-sub-box.is-on .alora-sub-chk svg { display: block; }
+.alora-sub-label { flex: 1; }
+.alora-sub-title {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: normal;
+  color: #000000;
+}
+.alora-sub-desc {
+  font-size: 13px;
+  color: #888;
+   letter-spacing: normal;
+  margin-top: 3px;
+  font-weight: 400;
+}
+
+.alora-atc {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 15px 24px;
+  background: rgba(1, 85, 45, 1);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: background .18s, opacity .18s;
+  font-family: 'Inter', sans-serif;
+  margin-bottom:10px;
+}
+.alora-atc:hover { background: #144d2f; }
+.alora-atc:disabled { opacity: .6; cursor: not-allowed; }
+.alora-atc.is-loading { opacity: .7; pointer-events: none; }
+
+.alora-sale-banner {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 20px 0 18px;
+}
+.alora-sale-line {
+  flex: 1;
+  height: 1.5px;
+  background: #b8d4bc;
+  border-radius: 2px;
+}
+.alora-sale-text {
+  font-size: 16px;
+  font-weight: 800;
+  color: #000000;
+  white-space: nowrap;
+  font-family: 'Inter', sans-serif;
+}
+.bar2,.bar3{
+  padding: 15px 14px !important;
+}
+.alora-bundle-price-col {
+    margin-top: 7px;
+}
+.bar1{
+  padding: 8px 14px;
+}
+.alora-sub-chk {
+    flex-shrink: 0;
+    width: 22px !important;
+    height: 22px !important;
+}
+.alora-sub-chk svg {
+    width: 13px !important;
+    height: 13px !important;
+  }
+@media (max-width: 480px) {
+.alora-bundle-bar{
+    padding: 8px 14px;
+}
+.alora-sale-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+    margin: 15px 0 10px;
+}
+.alora-sale-text{
+  font-size:14px !important;
+}
+.alora-sub-box{
+  padding: 10px 14px;
+}
+.alora-sub-title{
+    font-size:15px !important;
+}
+.alora-sub-desc {
+    font-size: 12px;
+    color: #888;
+    margin-top: 0px;
+    font-weight: 400;
+}
+}
+
+@media (max-width: 380px) {
+.alora-bundle-savings
+{
+font-size:12px;
+}
+}
+.alora-free-item
+{
+margin-top:15px;
+}
+</style>
+
+{% unless alora_custom_bundle_rendered %}{% assign alora_custom_bundle_rendered = true %}
+<div class="alora-bundle-wrap" id="alora-bundle-wrap">
+
+<div class="alora-sale-banner">
+  <span class="alora-sale-line"></span>
+  <span class="alora-sale-text">Early Spring Sale – Nearly Sold out!</span>
+  <span class="alora-sale-line"></span>
+</div>
+
+  <div class="alora-bundle-options">
+
+    <div class="alora-bundle-bar bar1" data-tier="1">
+      <div class="alora-bundle-radio"></div>
+      <div class="alora-bundle-content">
+        <div class="alora-bundle-info">
+          <div class="alora-bundle-name">Buy 1 Bottle</div>
+        </div>
+        <div class="alora-bundle-price-col">
+          <span class="alora-bundle-price-main" data-price-main></span>
+          <span class="alora-bundle-price-compare" data-price-compare></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alora-bundle-bar bar2 is-selected" data-tier="2">
+      <span class="alora-bundle-badge">Best Value</span>
+      <div class="alora-bundle-radio"></div>
+      <div class="alora-bundle-content">
+        <div class="alora-bundle-info">
+          <div class="alora-bundle-name">Buy 2, Get 1 Free</div>
+          <div class="alora-bundle-savings">You save 33% &amp; Free Shipping</div>
+        </div>
+        <div class="alora-bundle-price-col">
+          <span class="alora-bundle-price-main" data-price-main></span>
+          <span class="alora-bundle-price-compare" data-price-compare></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alora-bundle-bar bar3" data-tier="3">
+      <span class="alora-bundle-badge">Best Value</span>
+      <div class="alora-bundle-radio"></div>
+      <div class="alora-bundle-content">
+        <div class="alora-bundle-info">
+          <div class="alora-bundle-name">Buy 3, Get 2 Free</div>
+          <div class="alora-bundle-savings">You save 40% &amp; Free Shipping</div>
+        </div>
+        <div class="alora-bundle-price-col">
+          <span class="alora-bundle-price-main" data-price-main></span>
+          <span class="alora-bundle-price-compare" data-price-compare></span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="alora-sub-wrap">
+    <div class="alora-sub-box" id="alora-sub-box">
+      <div class="alora-sub-chk">
+        <svg viewBox="0 0 13 11"><polyline points="1,5.5 5,9.5 12,1.5"/></svg>
+      </div>
+      <div class="alora-sub-label">
+        <div class="alora-sub-title">Save 20% with Automatic Refills</div>
+        <div class="alora-sub-desc">Zero commitment, cancel Anytime</div>
+      </div>
+    </div>
+  </div>
+
+  <button class="alora-atc" id="alora-atc" type="button">ADD TO CART</button>
+
+</div>
+{% endunless %}
+
+<script>
+if (!window._aloraCustomBundleInit) {
+window._aloraCustomBundleInit = true;
+
+(function () {
+  var SUPPORTED_HANDLES = [
+    'lymphatic-drainages-drops',
+    'lymphatic-drainage-wellness-drops',
+    'lymphatic-drainage-drops',
+    'nitric-oxide-support-capsules',
+    'vaginal-probotics'
+  ];
+
+  var currentHandle = window.location.pathname.split('/products/')[1];
+  currentHandle = currentHandle ? currentHandle.split('?')[0].split('/')[0] : '';
+  if (SUPPORTED_HANDLES.indexOf(currentHandle) === -1) return;
+
+  var HANDLE_MAPS = {
+    'lymphatic-drainages-drops': {
+      '1': { variantId: '54111451087123', oneTime: '5.15', sub: '22.15', oneTimePrice: '$45.00', subPrice: '$36.00', comparePrice: '$90.00' },
+      '2': { variantId: '54111451119891', oneTime: '5.16', sub: '23.16', oneTimePrice: '$90.00', subPrice: '$72.00', comparePrice: '$270.00' },
+      '3': { variantId: '54111451152659', oneTime: '5.17', sub: '24.17', oneTimePrice: '$135.00', subPrice: '$108.00', comparePrice: '$450.00' }
+    },
+    'lymphatic-drainage-wellness-drops': {
+      '1': { variantId: '54111451087123', oneTime: '5.15', sub: '22.15', oneTimePrice: '$45.00', subPrice: '$36.00', comparePrice: '$90.00' },
+      '2': { variantId: '54111451119891', oneTime: '5.16', sub: '23.16', oneTimePrice: '$90.00', subPrice: '$72.00', comparePrice: '$270.00' },
+      '3': { variantId: '54111451152659', oneTime: '5.17', sub: '24.17', oneTimePrice: '$135.00', subPrice: '$108.00', comparePrice: '$450.00' }
+    },
+    'lymphatic-drainage-drops': {
+      '1': { variantId: '54111451087123', oneTime: '5.15', sub: '22.15', oneTimePrice: '$45.00', subPrice: '$36.00', comparePrice: '$90.00' },
+      '2': { variantId: '54111451119891', oneTime: '5.16', sub: '23.16', oneTimePrice: '$90.00', subPrice: '$72.00', comparePrice: '$270.00' },
+      '3': { variantId: '54111451152659', oneTime: '5.17', sub: '24.17', oneTimePrice: '$135.00', subPrice: '$108.00', comparePrice: '$450.00' }
+    },
+    'nitric-oxide-support-capsules': {
+      '1': { variantId: '54111468224787', oneTime: '7.21', sub: '26.21', oneTimePrice: '$45.00', subPrice: '$36.00', comparePrice: '$90.00' },
+      '2': { variantId: '54111468257555', oneTime: '7.22', sub: '27.22', oneTimePrice: '$90.00', subPrice: '$72.00', comparePrice: '$270.00' },
+      '3': { variantId: '54111468290323', oneTime: '7.23', sub: '28.23', oneTimePrice: '$135.00', subPrice: '$108.00', comparePrice: '$450.00' }
+    },
+    'vaginal-probotics': {
+      '1': { variantId: '54119722844435', oneTime: '32.25', sub: '33.25', oneTimePrice: '$45.00', subPrice: '$36.00', comparePrice: '$90.00' },
+      '2': { variantId: '54119722877203', oneTime: '32.26', sub: '34.26', oneTimePrice: '$90.00', subPrice: '$72.00', comparePrice: '$270.00' },
+      '3': { variantId: '54119722909971', oneTime: '32.27', sub: '35.27', oneTimePrice: '$135.00', subPrice: '$108.00', comparePrice: '$450.00' }
+    }
+  };
+
+  var TIER_MAP = HANDLE_MAPS[currentHandle];
+  if (!TIER_MAP) return;
+
+  var CC_BASE = ['nitric-oxide-support-capsules', 'vaginal-probotics'].indexOf(currentHandle) !== -1
+    ? 'https://checkout.aloradrops.com/secure-checkout'
+    : 'https://checkout.aloradrops.com/checkout';
+
+  var selectedTier = '2';
+  var subOn        = false;
+
+  var wrap   = document.getElementById('alora-bundle-wrap');
+  var bars   = wrap ? wrap.querySelectorAll('.alora-bundle-bar') : [];
+  var subBox = document.getElementById('alora-sub-box');
+  var atcBtn = document.getElementById('alora-atc');
+
+  if (!wrap || !bars.length || !subBox || !atcBtn) return;
+
+  function syncPagePrice() {
+    var map = TIER_MAP[selectedTier];
+    if (!map) return;
+    var displayPrice = subOn ? map.subPrice : map.oneTimePrice;
+    document.querySelectorAll('.price-item--regular').forEach(function (el) {
+      if (el.tagName === 'S' || el.closest('s')) return;
+      el.innerHTML = displayPrice;
+    });
+    document.querySelectorAll('.price-item--compare-at, .price-item--sale, .price__compare-at').forEach(function (el) {
+      el.style.display = 'none';
+    });
+  }
+
+  function renderPrices() {
+    bars.forEach(function (bar) {
+      var tier = bar.getAttribute('data-tier');
+      var map  = TIER_MAP[tier];
+      if (!map) return;
+      var main    = bar.querySelector('[data-price-main]');
+      var compare = bar.querySelector('[data-price-compare]');
+      if (main)    main.textContent = subOn ? map.subPrice : map.oneTimePrice;
+      if (compare) compare.textContent = map.comparePrice;
+    });
+    syncPagePrice();
+  }
+
+  function selectTier(tier) {
+    selectedTier = tier;
+    bars.forEach(function (bar) {
+      bar.classList.toggle('is-selected', bar.getAttribute('data-tier') === tier);
+    });
+    var hidden = document.querySelector('input.product-variant-id[name="id"], input[name="id"]');
+    if (hidden) {
+      hidden.value = TIER_MAP[tier].variantId;
+      hidden.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    syncPagePrice();
+  }
+
+  bars.forEach(function (bar) {
+    bar.addEventListener('click', function () { selectTier(bar.getAttribute('data-tier')); });
+  });
+
+  subBox.addEventListener('click', function () {
+    subOn = !subOn;
+    subBox.classList.toggle('is-on', subOn);
+    renderPrices();
+  });
+
+  function buildRedirectUrl(ccId) {
+    var c = document.cookie.match(/cart=([^;]+)/);
+    var a = document.cookie.match(/affId=([^;]+)/);
+    var url = CC_BASE + '?products=' + ccId + ':1&cartId=' + (c ? c[1] : '');
+    if (a) url += '&affId=' + a[1];
+    return url;
+  }
+
+  /* Store CC ID for checkout intercept */
+  function storeCCId() {
+    var map = TIER_MAP[selectedTier];
+    if (!map) return;
+    window._aloraPendingCCId = subOn ? map.sub : map.oneTime;
+    window._aloraPendingCCBase = CC_BASE;
+  }
+
+  /* Override Shrine checkout button to redirect to CC */
+  window.checkoutLoad = function(e) {
+    e.preventDefault();
+    var ccId = window._aloraPendingCCId;
+    if (!ccId) { window.location.href = '/checkout'; return; }
+    var c = document.cookie.match(/cart=([^;]+)/);
+    var a = document.cookie.match(/affId=([^;]+)/);
+    var url = (window._aloraPendingCCBase || CC_BASE) + '?products=' + ccId + ':1&cartId=' + (c ? c[1] : '');
+    if (a) url += '&affId=' + a[1];
+    window.location.href = url;
+  };
+
+  /* Capture phase backup */
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('#CartDrawer-Checkout');
+    if (!btn || !window._aloraPendingCCId) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    window.checkoutLoad(e);
+  }, true);
+
+atcBtn.addEventListener('click', function () {
+  var map = TIER_MAP[selectedTier];
+  if (!map) return;
+  window._aloraPendingCCId = subOn ? map.sub : map.oneTime;
+  window._aloraPendingCCBase = CC_BASE;
+  atcBtn.classList.add('is-loading');
+  atcBtn.textContent = 'ADDING...';
+
+  fetch('/cart/clear.js', { method: 'POST' })
+  .then(function() {
+    return fetch('/cart/add.js', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: [{ id: parseInt(map.variantId, 10), quantity: 1 }] })
+    });
+  })
+  .then(function(r) { return r.json(); })
+  .then(function() {
+    return fetch('/cart?sections=cart-drawer,cart-icon-bubble');
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var section = document.getElementById('shopify-section-cart-drawer');
+    if (section && data['cart-drawer']) {
+      section.innerHTML = data['cart-drawer'];
+    }
+    atcBtn.classList.remove('is-loading');
+    atcBtn.textContent = 'ADD TO CART';
+    var drawer = document.querySelector('cart-drawer');
+    if (drawer && typeof drawer.open === 'function') {
+      drawer.open();
+      setTimeout(overrideCartDrawerPrices, 300);
+      setTimeout(overrideCartDrawerPrices, 700);
+    }
+    /* Reset drawer HTML when closed so reopening via cart icon re-fetches */
+    var closeBtn = document.querySelector('cart-drawer [data-drawer-close], #CartDrawer-Overlay, .cart-drawer__overlay');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function resetOnce() {
+        fetch('/cart?sections=cart-drawer')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (section && data['cart-drawer']) section.innerHTML = data['cart-drawer'];
+        });
+        closeBtn.removeEventListener('click', resetOnce);
+      });
+    }
+  })
+  .catch(function() {
+    atcBtn.classList.remove('is-loading');
+    atcBtn.textContent = 'ADD TO CART';
+  });
+});
+
+  function overridePrices() {
+    var map = TIER_MAP[selectedTier];
+    if (!map) return;
+    var price = subOn ? map.subPrice : map.oneTimePrice;
+    var drawer = document.querySelector('cart-drawer');
+    if (!drawer) return;
+    drawer.querySelectorAll('.price--end.regular-price').forEach(function(el){ el.textContent = price; });
+    drawer.querySelectorAll('.cart-drawer__totals__row__money').forEach(function(el){ el.textContent = price; });
+  }
+
+  new MutationObserver(function(muts) {
+    muts.forEach(function(m) {
+      if (m.type === 'childList') {
+        var has = Array.from(m.addedNodes).some(function(n){ return n.nodeType===1 && n.querySelector && n.querySelector('.price--end'); });
+        if (has) setTimeout(overridePrices, 50);
+      }
+    });
+  }).observe(document.body, { childList: true, subtree: true });
+
+function overrideCartDrawerPrices() {
+  var map = TIER_MAP[selectedTier]; if (!map) return;
+  var price = subOn ? map.subPrice : map.oneTimePrice;
+  var drawer = document.querySelector('cart-drawer'); if (!drawer) return;
+
+  /* Override subtotal */
+  drawer.querySelectorAll('.cart-drawer__totals__row__money, .totals__subtotal-value').forEach(function(el){
+    el.textContent = price;
+  });
+
+  /* Override main item price */
+  var realItem = drawer.querySelector('.cart-item, [class*="cart-item"]');
+  if (realItem) {
+    realItem.querySelectorAll('.price--end .money, .price--end, .money, [class*="price"] .money').forEach(function(el){
+      if (!el.closest('s') && !el.closest('[class*="compare"]') && !el.closest('[class*="was"]')) {
+        el.textContent = price;
+      }
+    });
+
+    /* Keep the remove (trash) button so customers can remove the item.
+       Only hide the quantity steppers, since the bundle quantity is fixed. */
+    realItem.querySelectorAll('.quantity__button, button[name="minus"], button[name="plus"], [class*="quantity__button"]').forEach(function(el){ el.style.display = 'none'; });
+
+    /* Qty badge on main item — same position as free item */
+    var paidQty = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
+    if (!realItem.querySelector('.alora-qty-badge')) {
+      var qtyBadge = document.createElement('div');
+      qtyBadge.className = 'alora-qty-badge';
+      qtyBadge.style.cssText = 'display:inline-block;background:#f0faf4;border:1px solid #b2dfc0;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;color:#1a5c2e;margin-top:4px;margin-bottom:4px;';
+      qtyBadge.textContent = 'Qty: ' + paidQty;
+
+      /* Find title element and insert badge right after it */
+      var titleEl = realItem.querySelector(
+        'a[class*="cart-item__name"], [class*="cart-item__name"], ' +
+        '[class*="cart-item__title"], a[class*="name"], [class*="title"]'
+      );
+      if (titleEl && titleEl.parentNode) {
+        titleEl.parentNode.insertBefore(qtyBadge, titleEl.nextSibling);
+      } else {
+        /* Fallback — append to details area */
+        var infoEl = realItem.querySelector('[class*="details"], [class*="info"]') || realItem;
+        infoEl.appendChild(qtyBadge);
+      }
+    }
+
+    var qtyInput = realItem.querySelector('input[type="number"], .quantity__input, [class*="quantity"] input');
+    if (qtyInput) { qtyInput.value = paidQty; qtyInput.setAttribute('value', paidQty); }
+    var qtyDisplay = realItem.querySelector('[class*="quantity__number"]');
+    if (qtyDisplay) qtyDisplay.textContent = paidQty;
+  }
+
+  injectFreeItems();
+}
+
+function injectFreeItems() {
+  var drawer = document.querySelector('cart-drawer'); if (!drawer) return;
+  if (!window._aloraPendingCCId) return;
+
+  drawer.querySelectorAll('.alora-free-item').forEach(function(el){ el.remove(); });
+
+  var map = TIER_MAP[selectedTier]; if (!map) return;
+  var freeQty  = selectedTier === '2' ? 1 : selectedTier === '3' ? 2 : 0;
+  var paidQty  = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
+  var label    = selectedTier === '2' ? 'Buy 2, Get 1 Free' : 'Buy 3, Get 2 Free';
+  if (freeQty === 0) return;
+
+  var realItem = drawer.querySelector('.cart-item, [class*="cart-item"]'); if (!realItem) return;
+  var img      = realItem.querySelector('img');
+  var imgSrc   = img ? img.src : '';
+  var titleEl  = realItem.querySelector('a, [class*="cart-item__name"], [class*="cart-item__title"]');
+  var titleText = titleEl ? titleEl.textContent.trim() : 'Lymphatic Drainage Drops';
+
+  /* Calculate per-bottle price for savings display */
+  var totalNum  = parseFloat((subOn ? map.subPrice : map.oneTimePrice).replace('$',''));
+  var perBottle = (totalNum / paidQty).toFixed(2);
+  var saveTotal = (parseFloat(perBottle) * freeQty).toFixed(2);
+
+  var freeEl = document.createElement('div');
+  freeEl.className = 'alora-free-item';
+  freeEl.style.cssText = 'border-top:1px solid rgba(0,0,0,.08);';
+
+  freeEl.innerHTML = [
+    '<div style="display:flex;gap:14px;padding:18px 16px;position:relative;">',
+
+      /* Delete icon (hidden/disabled) */
+      '<div style="position:absolute;top:16px;right:16px;width:20px;height:20px;opacity:0.2;pointer-events:none;">',
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/></svg>',
+      '</div>',
+
+      /* Image */
+      imgSrc ? '<div style="flex-shrink:0;width:80px;height:80px;border-radius:8px;overflow:hidden;"><img src="'+imgSrc+'" style="width:100%;height:100%;object-fit:cover;" /></div>' : '',
+
+      /* Details */
+      '<div style="flex:1;min-width:0;">',
+
+        /* Title */
+        '<div style="font-size:15px;font-weight:700;color:#111;margin-bottom:4px;padding-right:28px;">'+titleText+'</div>',
+
+        /* Discount tag */
+        '<div style="display:inline-flex;align-items:center;gap:4px;background:#f0f0f0;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:600;color:#333;margin-bottom:4px;">',
+          '<span>🏷</span><span>'+label+'</span>',
+        '</div>',
+
+        /* Free Shipping */
+        '<div style="font-size:12px;color:#555;margin-bottom:10px;">Free Shipping</div>',
+
+        /* Bottom row: qty + price */
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">',
+
+          /* Qty display (no buttons) */
+          '<div style="display:inline-block;background:#f0faf4;border:1px solid #b2dfc0;border-radius:20px;padding:3px 12px;font-size:12px;font-weight:700;color:#1a5c2e;">',
+            'Qty: '+freeQty+'</div>',
+
+          /* Price block */
+          '<div style="text-align:right;">',
+            '<div style="display:flex;align-items:center;gap:6px;justify-content:flex-end;">',
+              '<span style="font-size:14px;color:#aaa;text-decoration:line-through;">$'+perBottle+'</span>',
+              '<span style="font-size:16px;font-weight:800;color:#111;">$0.00</span>',
+            '</div>',
+            '<div style="font-size:12px;color:#2d6a4f;font-weight:600;">(You save $'+saveTotal+')</div>',
+          '</div>',
+
+        '</div>',
+      '</div>',
+    '</div>'
+  ].join('');
+
+  realItem.parentNode.insertBefore(freeEl, realItem.nextSibling);
+}
+  /* ── Watch for cart drawer opening via header cart icon ── */
+  new MutationObserver(function(muts) {
+    muts.forEach(function(m) {
+      if (m.type === 'attributes' && m.attributeName === 'class') {
+        var el = m.target;
+        if (el.tagName && el.tagName.toLowerCase() === 'cart-drawer') {
+          var isOpen = el.classList.contains('active') || el.classList.contains('is-open') || el.classList.contains('open');
+          if (isOpen && window._aloraPendingCCId) {
+            setTimeout(overrideCartDrawerPrices, 200);
+            setTimeout(overrideCartDrawerPrices, 600);
+          }
+        }
+      }
+      /* Watch for new cart items rendered */
+      if (m.type === 'childList') {
+        var has = Array.from(m.addedNodes).some(function(n){
+          return n.nodeType === 1 && n.querySelector && n.querySelector('.price--end');
+        });
+        if (has && window._aloraPendingCCId) setTimeout(overrideCartDrawerPrices, 100);
+      }
+    });
+  }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+
+  renderPrices();
+  selectTier(selectedTier);
+})();
+
+}
+
+</script>
