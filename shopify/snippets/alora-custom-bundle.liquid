@@ -466,6 +466,26 @@ window._aloraCustomBundleInit = true;
   var selectedTier = '2';
   var subOn        = false;
 
+  /* Restore a previously-selected bundle so the drawer styling + CC redirect
+     also apply when the cart is opened from the header (no ATC this session). */
+  try {
+    var _saved = JSON.parse(localStorage.getItem('aloraBundle') || 'null');
+    if (_saved && _saved.handle === currentHandle) {
+      if (_saved.tier) selectedTier = _saved.tier;
+      subOn = !!_saved.sub;
+      if (_saved.ccId) { window._aloraPendingCCId = _saved.ccId; window._aloraPendingCCBase = _saved.ccBase || CC_BASE; }
+    }
+  } catch (e) {}
+
+  function saveBundleState() {
+    try {
+      localStorage.setItem('aloraBundle', JSON.stringify({
+        handle: currentHandle, tier: selectedTier, sub: subOn,
+        ccId: window._aloraPendingCCId, ccBase: window._aloraPendingCCBase || CC_BASE
+      }));
+    } catch (e) {}
+  }
+
   var wrap   = document.getElementById('alora-bundle-wrap');
   var bars   = wrap ? wrap.querySelectorAll('.alora-bundle-bar') : [];
   var subBox = document.getElementById('alora-sub-box');
@@ -568,6 +588,7 @@ window._aloraCustomBundleInit = true;
         var section = document.getElementById('shopify-section-cart-drawer');
         if (section && data['cart-drawer']) section.innerHTML = data['cart-drawer'];
         window._aloraPendingCCId = null;
+        try { localStorage.removeItem('aloraBundle'); } catch (e) {}
       })
       .catch(function() {});
   }
@@ -583,6 +604,7 @@ atcBtn.addEventListener('click', function () {
   if (!map) return;
   window._aloraPendingCCId = subOn ? map.sub : map.oneTime;
   window._aloraPendingCCBase = CC_BASE;
+  saveBundleState();
   atcBtn.classList.add('is-loading');
   atcBtn.textContent = 'ADDING...';
 
@@ -712,6 +734,8 @@ function overrideCartDrawerPrices() {
 }
 function overrideCartCount() {
   if (!window._aloraPendingCCId) return;
+  var d = document.querySelector('cart-drawer');
+  if (!d || !d.querySelector('.cart-items li.cart-item:not(.alora-free-item)')) return;
   var paidQty = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
   var freeQty = selectedTier === '2' ? 1 : selectedTier === '3' ? 2 : 0;
   var total = paidQty + freeQty;
@@ -863,6 +887,14 @@ var TRASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" wid
 
   renderPrices();
   selectTier(selectedTier);
+
+  /* If a bundle was already in the cart (restored from a prior session),
+     apply the drawer styling without waiting for an ATC click. */
+  if (window._aloraPendingCCId) {
+    setTimeout(overrideCartDrawerPrices, 500);
+    setTimeout(overrideCartDrawerPrices, 1200);
+    setTimeout(overrideCartDrawerPrices, 2500);
+  }
 })();
 
 }
