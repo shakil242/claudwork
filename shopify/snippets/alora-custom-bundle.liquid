@@ -635,8 +635,14 @@ atcBtn.addEventListener('click', function () {
     var price = subOn ? map.subPrice : map.oneTimePrice;
     var drawer = document.querySelector('cart-drawer');
     if (!drawer) return;
-    drawer.querySelectorAll('.price--end.regular-price').forEach(function(el){ el.textContent = price; });
-    drawer.querySelectorAll('.cart-drawer__totals__row__money').forEach(function(el){ el.textContent = price; });
+    drawer.querySelectorAll('.price--end.regular-price').forEach(function(el){
+      if (el.closest('.alora-free-item')) return; /* never touch the free row */
+      el.textContent = price;
+    });
+    drawer.querySelectorAll('.cart-drawer__totals__row__money').forEach(function(el){
+      if (el.closest('.alora-free-item')) return;
+      el.textContent = price;
+    });
   }
 
   new MutationObserver(function(muts) {
@@ -664,9 +670,10 @@ function overrideCartDrawerPrices() {
   if (realItem) {
     var paidQty = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
 
-    /* Total price (skip strikethrough / compare prices). */
+    /* Total price (skip strikethrough / compare prices); write only if changed. */
     realItem.querySelectorAll('.price--end.regular-price, .cart-item__final-price, .price--end .money').forEach(function(el){
-      if (!el.closest('s') && !el.closest('[class*="compare"]') && !el.closest('[class*="old"]')) el.textContent = price;
+      if (el.closest('s') || el.closest('[class*="compare"]') || el.closest('[class*="old"]')) return;
+      if (el.textContent.trim() !== price) el.textContent = price;
     });
 
     /* Show the paid quantity; keep the native stepper visible (matches
@@ -688,6 +695,11 @@ function injectFreeItems() {
   var drawer = document.querySelector('cart-drawer'); if (!drawer) return;
   if (!window._aloraPendingCCId) return;
 
+  /* Skip the rebuild when the existing free row already matches the current
+     selection — prevents the remove/re-add churn that caused flickering. */
+  var freeKey = selectedTier + '|' + (subOn ? '1' : '0');
+  var current = drawer.querySelector('.alora-free-item');
+  if (current && current.getAttribute('data-alora-key') === freeKey) return;
   drawer.querySelectorAll('.alora-free-item').forEach(function(el){ el.remove(); });
 
   var map = TIER_MAP[selectedTier]; if (!map) return;
@@ -719,6 +731,7 @@ function injectFreeItems() {
   var li = document.createElement('li');
   li.className = 'cart-drawer-item cart-item alora-free-item';
   li.setAttribute('role', 'row');
+  li.setAttribute('data-alora-key', freeKey);
   li.innerHTML = [
     '<div class="cart-item__media" role="cell">',
       imgSrc ? '<img class="cart-item__image" src="' + imgSrc + '" alt="" loading="lazy" width="150" height="150">' : '',
