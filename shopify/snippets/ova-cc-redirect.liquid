@@ -1,0 +1,77 @@
+{% comment %}
+  ──────────────────────────────────────────────────────────────
+  snippets/ova-cc-redirect.liquid
+
+  Redirects the Shopify cart/cart-drawer "Checkout" button to the
+  CheckoutChamp checkout, passing the cart's products + cartId.
+
+  Install: add to theme.liquid (once, before </body>):
+      {% render 'ova-cc-redirect' %}
+
+  Then fill in VARIANT_CC_MAP below: Shopify variant id -> CheckoutChamp
+  product id. Any variant not in the map is ignored; if nothing maps,
+  the normal /checkout is used as a safe fallback.
+{% endcomment %}
+
+<script>
+if (!window._ovaCcRedirectInit) {
+window._ovaCcRedirectInit = true;
+(function () {
+  'use strict';
+
+  var CC_BASE = 'https://secure.tryovalife.com/checkout';
+
+  /* Shopify variant ID (as string) -> CheckoutChamp product ID */
+  var VARIANT_CC_MAP = {
+    // '50123456789012': '101',
+    // '50123456789013': '102',
+    // '50123456789014': '103'
+  };
+
+  /* CheckoutChamp products separator: ';' for multiple products. Change to
+     ',' if your CC campaign expects commas. */
+  var SEP = ';';
+
+  /* Checkout buttons to intercept (cart drawer + cart page). */
+  var CHECKOUT_SELECTORS = [
+    '#CartDrawer-Checkout',
+    'button[name="checkout"]',
+    'input[name="checkout"]',
+    '.cart__checkout-button',
+    '.cart__checkout',
+    '#checkout'
+  ].join(',');
+
+  function cookie(name) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]+)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  function redirectToCC(e) {
+    if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+    fetch('/cart.js', { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (cart) {
+        var parts = [];
+        (cart.items || []).forEach(function (item) {
+          var ccId = VARIANT_CC_MAP[String(item.variant_id)] || VARIANT_CC_MAP[String(item.id)];
+          if (ccId) parts.push(ccId + ':' + item.quantity);
+        });
+        if (!parts.length) { window.location.href = '/checkout'; return; } /* nothing mapped */
+        var url = CC_BASE + '?products=' + parts.join(SEP) + '&cartId=' + cookie('cart');
+        var aff = cookie('affId');
+        if (aff) url += '&affId=' + aff;
+        window.location.href = url;
+      })
+      .catch(function () { window.location.href = '/checkout'; });
+  }
+
+  /* Capture phase so we beat the theme's own checkout handler. */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest(CHECKOUT_SELECTORS);
+    if (!btn) return;
+    redirectToCC(e);
+  }, true);
+})();
+}
+</script>
