@@ -611,6 +611,8 @@ atcBtn.addEventListener('click', function () {
       drawer.open();
       setTimeout(overrideCartDrawerPrices, 300);
       setTimeout(overrideCartDrawerPrices, 700);
+      setTimeout(overrideCartDrawerPrices, 1200);
+      setTimeout(overrideCartDrawerPrices, 2000);
     }
     /* Reset drawer HTML when closed so reopening via cart icon re-fetches */
     var closeBtn = document.querySelector('cart-drawer [data-drawer-close], #CartDrawer-Overlay, .cart-drawer__overlay');
@@ -689,15 +691,9 @@ function overrideCartDrawerPrices() {
 }
 function overrideCartCount() {
   if (!window._aloraPendingCCId) return;
-  var drawer = document.querySelector('cart-drawer'); if (!drawer) return;
-  var total = 0;
-  drawer.querySelectorAll('.cart-items > li').forEach(function(li){
-    var q = li.querySelector('.quantity__input, input[type="number"]');
-    var n = q ? parseInt(q.value, 10) : NaN;
-    if (isNaN(n)) { var b = li.querySelector('[class*="qty"]'); n = b ? parseInt(b.textContent, 10) : 1; }
-    total += (isNaN(n) ? 0 : n);
-  });
-  if (total < 1) total = (selectedTier === '2' ? 3 : selectedTier === '3' ? 5 : 1);
+  var paidQty = selectedTier === '2' ? 2 : selectedTier === '3' ? 3 : 1;
+  var freeQty = selectedTier === '2' ? 1 : selectedTier === '3' ? 2 : 0;
+  var total = paidQty + freeQty;
   document.querySelectorAll('.drawer__heading, [class*="cart-drawer"] h2').forEach(function(el){
     if (!/\d/.test(el.textContent)) return;
     var next = el.textContent.replace(/\d+/, total);
@@ -837,6 +833,9 @@ var TRASH_SVG = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" wid
           return n.nodeType === 1 && n.querySelector && n.querySelector('.price--end');
         });
         if (has && window._aloraPendingCCId) setTimeout(overrideCartDrawerPrices, 100);
+        /* Re-assert the bundle count whenever the drawer/header re-renders
+           (set-if-different inside prevents any loop). */
+        if (window._aloraPendingCCId) overrideCartCount();
       }
     });
   }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
