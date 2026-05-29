@@ -832,6 +832,26 @@ function injectFreeItems() {
     '</div>'
   ].join('');
 
+  /* Make the free row's quantity selector identical to the paid row's by
+     cloning the real stepper (keeps the theme's CSS vars/styling), then
+     setting its value to freeQty and making it inert. */
+  var mainQtyWrap = realItem.querySelector('.cart-item__quantity-wrapper');
+  var freeQtyWrap = li.querySelector('.cart-item__quantity-wrapper');
+  if (mainQtyWrap && freeQtyWrap) {
+    var cloneQ = mainQtyWrap.cloneNode(true);
+    cloneQ.querySelectorAll('[id]').forEach(function(e){ e.removeAttribute('id'); });
+    var inp = cloneQ.querySelector('input');
+    if (inp) {
+      inp.value = freeQty; inp.setAttribute('value', freeQty);
+      inp.readOnly = true;
+      inp.removeAttribute('name'); inp.removeAttribute('data-index'); inp.removeAttribute('data-quantity-variant-id');
+    }
+    cloneQ.querySelectorAll('button').forEach(function(b){
+      b.setAttribute('disabled', 'disabled'); b.style.pointerEvents = 'none'; b.style.opacity = '.4';
+    });
+    freeQtyWrap.parentNode.replaceChild(cloneQ, freeQtyWrap);
+  }
+
   /* Free item listed first, exactly like purealora. */
   list.insertBefore(li, realItem);
 }
