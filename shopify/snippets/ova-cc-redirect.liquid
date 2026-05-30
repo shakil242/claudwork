@@ -11,6 +11,32 @@
       {% render 'ova-cc-redirect' %}
 {% endcomment %}
 
+<style>
+  .ova-sub-wrap { margin: 12px 0 18px; max-width: 580px; }
+  .ova-sub-box {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 16px;
+    border: 2.5px dashed #a8c5b0;
+    border-radius: 16px;
+    background: #fff; cursor: pointer; user-select: none;
+    transition: border-color .18s, background .18s;
+  }
+  .ova-sub-box.is-on { border-color: #2d6a4f; background: #f0faf4; }
+  .ova-sub-box input.ova-sub-toggle { position: absolute; opacity: 0; pointer-events: none; }
+  .ova-sub-box .ova-sub-chk {
+    flex-shrink: 0; width: 22px; height: 22px;
+    border: 2px solid #ccc; border-radius: 4px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .18s;
+  }
+  .ova-sub-box .ova-sub-chk svg { display: none; width: 13px; height: 13px; }
+  .ova-sub-box.is-on .ova-sub-chk { background: #2d6a4f; border-color: #2d6a4f; }
+  .ova-sub-box.is-on .ova-sub-chk svg { display: block; }
+  .ova-sub-label { display: flex; flex-direction: column; line-height: 1.25; }
+  .ova-sub-label strong { font-size: 15px; color: #111; font-weight: 700; }
+  .ova-sub-label small { font-size: 13px; color: #666; margin-top: 2px; }
+</style>
+
 <script>
 if (!window._ovaCcRedirectInit) {
 window._ovaCcRedirectInit = true;
@@ -116,6 +142,8 @@ window._ovaCcRedirectInit = true;
   }
 
   function isSubscriptionOnPage(form) {
+    /* Our injected toggle wins. */
+    if (document.querySelector('.ova-sub-toggle:checked')) return true;
     /* Selling-plan input inside or near the product form */
     var sp = form.querySelector('input[name="selling_plan"], input[name="selling_plan_id"], input[name="properties[__shopify_selling_plan]"]');
     if (sp && sp.value && sp.value !== '0') return true;
@@ -167,6 +195,9 @@ window._ovaCcRedirectInit = true;
       }
     }
 
+    /* Subscription toggle widget — sits right under the form. */
+    ensureSubToggle(form);
+
     /* Attach submit listener only once per form element. */
     if (form._ovaWired) return;
     form._ovaWired = true;
@@ -179,6 +210,31 @@ window._ovaCcRedirectInit = true;
         if (redirectFromForm(form)) { e.preventDefault(); e.stopImmediatePropagation(); }
       }, true);
     }
+  }
+
+  function ensureSubToggle(form) {
+    if (!form || form.previousElementSibling && form.previousElementSibling.classList && form.previousElementSibling.classList.contains('ova-sub-wrap')) return;
+    if (form.parentNode && form.parentNode.querySelector('.ova-sub-wrap')) return;
+    var checked = false;
+    try { checked = localStorage.getItem('ovaSubOn') === '1'; } catch (e) {}
+    var wrap = document.createElement('div');
+    wrap.className = 'ova-sub-wrap';
+    wrap.innerHTML =
+      '<label class="ova-sub-box' + (checked ? ' is-on' : '') + '">' +
+        '<input type="checkbox" class="ova-sub-toggle" data-kaching-subscription' + (checked ? ' checked' : '') + '>' +
+        '<span class="ova-sub-chk"><svg viewBox="0 0 13 11"><polyline points="1,5.5 5,9.5 12,1.5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
+        '<span class="ova-sub-label">' +
+          '<strong>Save 20% with Auto-Refill</strong>' +
+          '<small>Cancel anytime, no commitment</small>' +
+        '</span>' +
+      '</label>';
+    form.parentNode.insertBefore(wrap, form.nextSibling);
+    var cb = wrap.querySelector('input');
+    var box = wrap.querySelector('.ova-sub-box');
+    cb.addEventListener('change', function () {
+      box.classList.toggle('is-on', cb.checked);
+      try { localStorage.setItem('ovaSubOn', cb.checked ? '1' : '0'); } catch (e) {}
+    });
   }
 
   function scanProductForms() {
