@@ -1,0 +1,74 @@
+{
+  // Editor Settings
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
+  "editor.detectIndentation": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+
+  // File Associations
+  "files.associations": {
+    "*.liquid": "liquid",
+    "*.js": "javascript"
+  },
+
+  // Liquid Language Support
+  "[liquid]": {
+    "editor.defaultFormatter": "Shopify.theme-check-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // JavaScript Settings
+  "[javascript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // HTML Settings
+  "[html]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // CSS Settings
+  "[css]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.formatOnSave": true
+  },
+
+  // Files to Exclude from Explorer
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "**/node_modules": true
+  },
+
+  // Search Settings
+  "search.exclude": {
+    "**/.git": true,
+    "**/node_modules": true
+  },
+
+  // Shopify Specific
+  "liquid.format.enable": true,
+
+  // IntelliSense
+  "javascript.suggest.autoImports": true,
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  // Bracket Pair Colorization
+  "editor.bracketPairColorization.enabled": true,
+  "editor.guides.bracketPairs": true,
+
+  // Minimap
+  "editor.minimap.enabled": true,
+
+  // Line Numbers
+  "editor.lineNumbers": "on",
+
+  // Word Wrap
+  "editor.wordWrap": "on"
+}

@@ -1,0 +1,503 @@
+{% comment %}
+  ──────────────────────────────────────────────────────────────
+  snippets/ova-cc-redirect.liquid
+
+  Redirects the Shopify cart/cart-drawer "Checkout" button to the
+  CheckoutChamp checkout, building products=offerId.itemId:qty from the
+  cart. Picks the subscription offer when the line item has a Shopify
+  selling plan; otherwise uses the one-time offer.
+
+  Install: add to theme.liquid (once, before </body>):
+      {% render 'ova-cc-redirect' %}
+{% endcomment %}
+
+<style>
+  .ova-sub-wrap { margin: 12px 0 18px; max-width: 580px; }
+  .ova-sub-box {
+    display: flex; align-items: center; gap: 14px;
+    padding: 11px 16px;
+    border: 2.5px dashed #a8c5b0;
+    border-radius: 16px;
+    background: #fff; cursor: pointer; user-select: none;
+    transition: border-color .18s, background .18s;
+  }
+  .ova-sub-box.is-on { border-color: #2d6a4f; background: #f0faf4; }
+  .ova-sub-box input.ova-sub-toggle { position: absolute; opacity: 0; pointer-events: none; }
+  .ova-sub-box .ova-sub-chk {
+    flex-shrink: 0; width: 22px; height: 22px;
+    border: 2px solid #ccc; border-radius: 4px; background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    transition: all .18s;
+  }
+  .ova-sub-box .ova-sub-chk svg { display: none; width: 13px; height: 13px; }
+  .ova-sub-box.is-on .ova-sub-chk { background: #2d6a4f; border-color: #2d6a4f; }
+  .ova-sub-box.is-on .ova-sub-chk svg { display: block; }
+  .ova-sub-label { display: flex; flex-direction: column; line-height: 1.25; }
+  .ova-sub-label strong { font-size: 15px; color: #111; font-weight: 700; }
+  .ova-sub-label small { font-size: 13px; color: #666; margin-top: 2px; }
+</style>
+
+<script>
+if (!window._ovaCcRedirectInit) {
+window._ovaCcRedirectInit = true;
+(function () {
+  'use strict';
+
+  var CC_BASE = 'https://secure.tryovalife.com/checkout';
+  var SEP     = ';'; /* products separator: ';' for multiple; switch to ',' if your campaign expects commas */
+
+  /* Shopify variant id -> { ot: one-time offer.item, sub: subscription offer.item } */
+  var VARIANT_CC_MAP = {
+    /* Berberine Blood Sugar Support Drops */
+    '57761187332444': { ot: '1.7',  sub: '15.7'  },
+    '57761187365212': { ot: '1.8',  sub: '16.8'  },
+    '57761187397980': { ot: '1.9',  sub: '17.9'  },
+
+    /* Complete 3-Phase Liver Support */
+    '57761171964252': { ot: '2.10', sub: '18.10' },
+    '57761171997020': { ot: '2.11', sub: '19.11' },
+    '57761172029788': { ot: '2.12', sub: '20.12' },
+
+    /* Complete Liver Detox & Insulin Reset */
+    '57765138006364': { ot: '3.13', sub: '21.13' },
+    '57761110884700': { ot: '3.14', sub: '22.14' },
+    '57765146591580': { ot: '3.15', sub: '23.15' },
+
+    /* Irish Seamoss Thyroid Hormone Regulator (A) */
+    '57765170970972': { ot: '4.16', sub: '24.16' },
+    '57765171003740': { ot: '4.17', sub: '25.17' },
+    '57765171036508': { ot: '4.18', sub: '26.18' },
+
+    /* Irish Seamoss Thyroid Hormone Regulator (B) */
+    '57765168382300': { ot: '6.22', sub: '27.22' },
+    '57765168415068': { ot: '6.23', sub: '28.23' },
+    '57765168447836': { ot: '6.24', sub: '29.24' },
+
+    /* Irish Saw Palmetto Complete Prostate Support */
+    '57736719106396': { ot: '11.19', sub: '12.19' },
+    '57736719139164': { ot: '11.20', sub: '13.20' },
+    '57765157208412': { ot: '11.21', sub: '14.21' }
+  };
+
+  /* Checkout buttons to intercept (cart drawer + cart page). */
+  var CHECKOUT_SELECTORS = [
+    '#CartDrawer-Checkout',
+    'button[name="checkout"]',
+    'input[name="checkout"]',
+    '.cart__checkout-button',
+    '.cart__checkout',
+    '#checkout'
+  ].join(',');
+
+  function cookie(name) {
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]+)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+
+  /* Global subscription state: our toggle wins, then localStorage, then
+     default ON (matches the product-page default). This is checked from
+     BOTH the product-form path and the cart checkout path so the offer
+     sent to CheckoutChamp matches what the user saw on the page. */
+  function isGlobalSubOn() {
+    if (document.querySelector('.ova-sub-toggle:checked')) return true;
+    var box = document.querySelector('.ova-sub-toggle');
+    if (box && box.checked === false) return false;
+    try {
+      var v = localStorage.getItem('ovaSubOn');
+      if (v === '1') return true;
+      if (v === '0') return false;
+    } catch (e) {}
+    return true;
+  }
+
+  /* A line item is a subscription when our toggle is on OR Shopify
+     attached a selling plan to the line. */
+  function isSubscription(item) {
+    if (isGlobalSubOn()) return true;
+    if (item.selling_plan_allocation) return true;
+    if (item.selling_plan_id) return true;
+    if (item.properties && (item.properties._selling_plan || item.properties.selling_plan)) return true;
+    return false;
+  }
+
+  function redirectToCC(e) {
+    if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
+    fetch('/cart.js', { headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (cart) {
+        var parts = [];
+        (cart.items || []).forEach(function (item) {
+          var map = VARIANT_CC_MAP[String(item.variant_id)] || VARIANT_CC_MAP[String(item.id)];
+          if (!map) return;
+          var ccId = isSubscription(item) ? (map.sub || map.ot) : map.ot;
+          if (ccId) parts.push(ccId + ':' + item.quantity);
+        });
+        if (!parts.length) { window.location.href = '/checkout'; return; } /* nothing mapped -> normal checkout */
+        var url = CC_BASE + '?products=' + parts.join(SEP) + '&cartId=' + cookie('cart');
+        var aff = cookie('affId');
+        if (aff) url += '&affId=' + aff;
+        window.location.href = url;
+      })
+      .catch(function () { window.location.href = '/checkout'; });
+  }
+
+  /* Capture phase so we beat the theme's own checkout handler. */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest(CHECKOUT_SELECTORS);
+    if (!btn) return;
+    redirectToCC(e);
+  }, true);
+
+  /* ──────────────────────────────────────────────────────────────
+     Product page: when a variant in our map is currently selected and
+     Shopify has disabled the ATC ("Sold out"), force-enable it, relabel
+     it "BUY NOW", and on submit go straight to CheckoutChamp — bypassing
+     Shopify cart + inventory.
+     ────────────────────────────────────────────────────────────── */
+  function variantIdFromForm(form) {
+    var i = form.querySelector('input.product-variant-id, input[name="id"]');
+    return i ? String(i.value || '') : '';
+  }
+
+  function isSubscriptionOnPage(form) {
+    if (isGlobalSubOn()) return true;
+    var sp = form.querySelector('input[name="selling_plan"], input[name="selling_plan_id"], input[name="properties[__shopify_selling_plan]"]');
+    if (sp && sp.value && sp.value !== '0') return true;
+    var t = document.querySelector('[data-kaching-subscription]:checked, [data-kaching-sub]:checked, input[name*="selling_plan"]:checked');
+    return !!t;
+  }
+
+  function redirectFromForm(form) {
+    var vid = variantIdFromForm(form);
+    var m = VARIANT_CC_MAP[vid];
+    if (!m) return false;
+    var ccId = isSubscriptionOnPage(form) ? (m.sub || m.ot) : m.ot;
+    var url = CC_BASE + '?products=' + ccId + ':1&cartId=' + cookie('cart');
+    var aff = cookie('affId');
+    if (aff) url += '&affId=' + aff;
+    window.location.href = url;
+    return true;
+  }
+
+  function wireProductForm(form) {
+    if (!form) return;
+    var vid = variantIdFromForm(form);
+    if (!VARIANT_CC_MAP[vid]) return; /* not one of ours */
+
+    /* Re-apply the enable on every pass — Katching re-renders the form when
+       the user picks a tier, which restores 'disabled'. */
+    var btn = form.querySelector('button[type="submit"], button[name="add"]');
+    if (btn) {
+      if (btn.disabled || btn.hasAttribute('disabled') || btn.getAttribute('data-unavailable') === 'true') {
+        btn.disabled = false;
+        btn.removeAttribute('disabled');
+        btn.setAttribute('data-unavailable', 'false');
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        btn.style.cursor = 'pointer';
+      }
+      /* Relabel ALWAYS — independent of disabled state — because Katching
+         can re-set the label text back to 'Sold out' even on enabled buttons. */
+      var label = btn.querySelector('.main-atc__label__text, .product-form__submit-text, .button__label');
+      if (label && /sold\s*out/i.test(label.textContent)) {
+        label.textContent = 'BUY NOW';
+      } else if (!label) {
+        /* Fallback: rewrite direct text nodes that say Sold out */
+        for (var i = 0; i < btn.childNodes.length; i++) {
+          var n = btn.childNodes[i];
+          if (n.nodeType === 3 && /sold\s*out/i.test(n.textContent)) { n.textContent = 'BUY NOW'; break; }
+        }
+      }
+    }
+
+    /* Subscription toggle widget — sits right under the form. */
+    ensureSubToggle(form);
+
+    /* Attach submit listener only once per form element. */
+    if (form._ovaWired) return;
+    form._ovaWired = true;
+    form.addEventListener('submit', function (e) {
+      if (redirectFromForm(form)) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+    /* Also handle click on the button (in case theme blocks form submit). */
+    if (btn) {
+      btn.addEventListener('click', function (e) {
+        if (redirectFromForm(form)) { e.preventDefault(); e.stopImmediatePropagation(); }
+      }, true);
+    }
+  }
+
+  function ensureSubToggle(form) {
+    if (!form || form.previousElementSibling && form.previousElementSibling.classList && form.previousElementSibling.classList.contains('ova-sub-wrap')) return;
+    if (form.parentNode && form.parentNode.querySelector('.ova-sub-wrap')) return;
+    var checked = true;
+    try {
+      var stored = localStorage.getItem('ovaSubOn');
+      if (stored === '0') checked = false;
+    } catch (e) {}
+    var wrap = document.createElement('div');
+    wrap.className = 'ova-sub-wrap';
+    wrap.innerHTML =
+      '<label class="ova-sub-box' + (checked ? ' is-on' : '') + '">' +
+        '<input type="checkbox" class="ova-sub-toggle" data-kaching-subscription' + (checked ? ' checked' : '') + '>' +
+        '<span class="ova-sub-chk"><svg viewBox="0 0 13 11"><polyline points="1,5.5 5,9.5 12,1.5" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>' +
+        '<span class="ova-sub-label">' +
+          '<strong>Save 20% with Auto-Refill</strong>' +
+          '<small>Cancel anytime, no commitment</small>' +
+        '</span>' +
+      '</label>';
+    form.parentNode.insertBefore(wrap, form.nextSibling);
+    var cb = wrap.querySelector('input');
+    var box = wrap.querySelector('.ova-sub-box');
+    cb.addEventListener('change', function () {
+      box.classList.toggle('is-on', cb.checked);
+      try { localStorage.setItem('ovaSubOn', cb.checked ? '1' : '0'); } catch (e) {}
+      overrideBundlePrices();
+    });
+  }
+
+  /* Override each Katching tier's displayed price:
+        1 bottle  -> sub $64.00    one-time $76.80
+        2 bottles -> sub $128.00   one-time $153.60
+        3 bottles -> sub $192.00   one-time $230.40
+     Sub price shows when our subscription toggle is checked, otherwise OT.
+     Compare-at (struck-through MSRP) is STATIC per tier and never shuffles
+     when the user clicks another tier. */
+  var SUB_UNIT       = 64;
+  var OT_MARKUP      = 0.20;
+  var STATIC_COMPARE = { 1: null, 2: 327, 3: 545 };
+  function fmt(n) { return '$' + n.toFixed(2); }
+  function bottlesForBar(bar, index) {
+    var t = (bar.textContent || '').replace(/\s+/g, ' ');
+    var m = t.match(/buy\s+(\d+)/i);
+    if (m) return parseInt(m[1], 10);
+    m = t.match(/(\d+)\s*bottle/i);
+    if (m) return parseInt(m[1], 10);
+    var r = bar.querySelector('input[type="radio"][value]');
+    if (r && /^\d+$/.test(r.value)) {
+      var v = parseInt(r.value, 10);
+      if (v >= 1 && v <= 10) return v;
+    }
+    return index + 1;
+  }
+  function subOn() {
+    return !!document.querySelector('.ova-sub-toggle:checked');
+  }
+  function overrideBundlePrices() {
+    var bars = document.querySelectorAll('.kaching-bundles__bar');
+    if (!bars.length) return;
+    var sub = subOn();
+    bars.forEach(function (bar, idx) {
+      /* Stash the variant id (Katching prints it as the label) and replace
+         the visible label with a clean "N Bottle(s)" string. */
+      var labelEl = bar.querySelector('.kaching-bundles__bar-label');
+      if (labelEl) {
+        var raw = (labelEl.textContent || '').trim();
+        var digits = raw.replace(/\D/g, '');
+        if (digits && digits.length >= 6) {
+          if (!bar.dataset.ovaVariantId) bar.dataset.ovaVariantId = digits;
+        }
+      }
+      var bottles = bottlesForBar(bar, idx);
+      var subAmt  = SUB_UNIT * bottles;
+      var otAmt   = subAmt * (1 + OT_MARKUP);
+      var price   = sub ? subAmt : otAmt;
+      var compareAmt  = STATIC_COMPARE[bottles]; /* null = hide compare-at */
+      var priceText   = fmt(price);
+      var compareText = compareAmt != null ? fmt(compareAmt) : '';
+      var friendly    = bottles + (bottles === 1 ? ' Bottle' : ' Bottles');
+      if (labelEl && labelEl.textContent.trim() !== friendly) {
+        labelEl.textContent = friendly;
+      }
+
+      /* Main price element(s). Always overwrite — Katching repaints the
+         selected tier with its own numbers, so caching by attribute lets
+         stale values stick. */
+      var priceEls = bar.querySelectorAll(
+        '.kaching-bundles__bar-price, ' +
+        '.kaching-bundles__bar-discounted-price, ' +
+        '.kaching-bundles__bar-final-price, ' +
+        '[class*="bar-price"]:not([class*="compare"])'
+      );
+      priceEls.forEach(function (el) {
+        if (el.textContent !== priceText) el.textContent = priceText;
+      });
+
+      /* Compare-at / struck-through. STATIC per tier — never depends on
+         selection state or subscription state. Tier 1 has none. */
+      var cmpEls = Array.prototype.slice.call(bar.querySelectorAll(
+        '.kaching-bundles__bar-compare-price, ' +
+        '.kaching-bundles__bar-original-price, ' +
+        '.kaching-bundles__bar-mrp, ' +
+        '.kaching-bundles__bar-strike, ' +
+        '[class*="compare-price"], [class*="compare_price"], ' +
+        '[class*="original-price"], [class*="original_price"], ' +
+        '[class*="mrp"], [class*="strike"], [class*="old-price"], ' +
+        'del, s, strike'
+      ));
+      if (!cmpEls.length) cmpEls = fallbackCompareEls(bar);
+      cmpEls.forEach(function (el) {
+        if (compareAmt == null) {
+          if (el.textContent !== '') el.textContent = '';
+          el.style.display = 'none';
+        } else {
+          if (el.textContent !== compareText) el.textContent = compareText;
+          el.style.display = '';
+        }
+      });
+
+      /* Watch this bar for Katching repaints and immediately re-apply. */
+      if (!bar._ovaObs) {
+        bar._ovaObs = new MutationObserver(function () {
+          if (bar._ovaApplying) return;
+          bar._ovaApplying = true;
+          try { applyBar(bar, idx); } finally { bar._ovaApplying = false; }
+        });
+        bar._ovaObs.observe(bar, { childList: true, subtree: true, characterData: true });
+      }
+    });
+  }
+
+  /* Last-resort compare-at: any element inside the bar that already shows a
+     dollar amount and is NOT the main price. Catches themes where the
+     compare-at element has no recognisable class. */
+  function fallbackCompareEls(bar) {
+    var out = [];
+    var priceEls = bar.querySelectorAll(
+      '.kaching-bundles__bar-price, ' +
+      '.kaching-bundles__bar-discounted-price, ' +
+      '.kaching-bundles__bar-final-price, ' +
+      '[class*="bar-price"]:not([class*="compare"])'
+    );
+    var priceSet = new Set(Array.prototype.slice.call(priceEls));
+    bar.querySelectorAll('*').forEach(function (el) {
+      if (priceSet.has(el)) return;
+      if (el.children.length) return; /* leaf only */
+      var t = (el.textContent || '').trim();
+      if (/^\$\d/.test(t)) out.push(el);
+    });
+    return out;
+  }
+
+  /* Single-bar version used by the per-bar MutationObserver. */
+  function applyBar(bar, idx) {
+    var sub = subOn();
+    var bottles = bottlesForBar(bar, idx);
+    var subAmt = SUB_UNIT * bottles;
+    var otAmt  = subAmt * (1 + OT_MARKUP);
+    var price  = sub ? subAmt : otAmt;
+    var compareAmt = STATIC_COMPARE[bottles];
+    var priceText   = fmt(price);
+    var compareText = compareAmt != null ? fmt(compareAmt) : '';
+    var labelEl = bar.querySelector('.kaching-bundles__bar-label');
+    if (labelEl) {
+      var raw = (labelEl.textContent || '').trim();
+      var digits = raw.replace(/\D/g, '');
+      if (digits && digits.length >= 6 && !bar.dataset.ovaVariantId) {
+        bar.dataset.ovaVariantId = digits;
+      }
+      var friendly = bottles + (bottles === 1 ? ' Bottle' : ' Bottles');
+      if (labelEl.textContent.trim() !== friendly) labelEl.textContent = friendly;
+    }
+    bar.querySelectorAll(
+      '.kaching-bundles__bar-price, ' +
+      '.kaching-bundles__bar-discounted-price, ' +
+      '.kaching-bundles__bar-final-price, ' +
+      '[class*="bar-price"]:not([class*="compare"])'
+    ).forEach(function (el) {
+      if (el.textContent !== priceText) el.textContent = priceText;
+    });
+    var cmpEls = Array.prototype.slice.call(bar.querySelectorAll(
+      '.kaching-bundles__bar-compare-price, ' +
+      '.kaching-bundles__bar-original-price, ' +
+      '.kaching-bundles__bar-mrp, ' +
+      '.kaching-bundles__bar-strike, ' +
+      '[class*="compare-price"], [class*="compare_price"], ' +
+      '[class*="original-price"], [class*="original_price"], ' +
+      '[class*="mrp"], [class*="strike"], [class*="old-price"], ' +
+      'del, s, strike'
+    ));
+    if (!cmpEls.length) cmpEls = fallbackCompareEls(bar);
+    cmpEls.forEach(function (el) {
+      if (compareAmt == null) {
+        if (el.textContent !== '') el.textContent = '';
+        el.style.display = 'none';
+      } else {
+        if (el.textContent !== compareText) el.textContent = compareText;
+        el.style.display = '';
+      }
+    });
+  }
+
+  /* Read the variant id shown in the SELECTED Katching bundle bar's label
+     and write it into the Shopify form's hidden id input. Katching renders
+     the variant id as plain text inside .kaching-bundles__bar-label. */
+  function syncKachingVariant() {
+    var bars = document.querySelectorAll('.kaching-bundles__bar');
+    if (!bars.length) return;
+    var sel = document.querySelector('.kaching-bundles__bar--selected');
+    if (!sel) {
+      var checked = document.querySelector('.kaching-bundles__bar input[type="radio"]:checked');
+      if (checked) sel = checked.closest('.kaching-bundles__bar');
+    }
+    if (!sel) return;
+    var vid = sel.dataset && sel.dataset.ovaVariantId ? sel.dataset.ovaVariantId : '';
+    if (!vid) {
+      var labelEl = sel.querySelector('.kaching-bundles__bar-label');
+      if (!labelEl) return;
+      vid = (labelEl.textContent || '').replace(/\D/g, '');
+    }
+    if (!vid) return;
+    document.querySelectorAll(
+      'form[data-type="add-to-cart-form"] input.product-variant-id, ' +
+      'form[data-type="add-to-cart-form"] input[name="id"], ' +
+      'form[action^="/cart/add"] input.product-variant-id, ' +
+      'form[action^="/cart/add"] input[name="id"]'
+    ).forEach(function (inp) {
+      if (inp.value !== vid) {
+        inp.value = vid;
+        inp.setAttribute('value', vid);
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  }
+
+  /* Sync + repaint prices on tier click (radio or bar). Multiple delays so
+     we win whether Katching re-renders before or after our handler. */
+  function repaintAfterTierChange() {
+    syncKachingVariant();
+    overrideBundlePrices();
+  }
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.kaching-bundles__bar, .kaching-bundles__bar-radio, .kaching-bundles__bar-main, .kaching-bundles__bar-container')) return;
+    repaintAfterTierChange();
+    setTimeout(repaintAfterTierChange, 30);
+    setTimeout(repaintAfterTierChange, 200);
+    setTimeout(repaintAfterTierChange, 500);
+  }, true);
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.matches && e.target.matches('.kaching-bundles__bar input[type="radio"]')) {
+      repaintAfterTierChange();
+      setTimeout(repaintAfterTierChange, 30);
+      setTimeout(repaintAfterTierChange, 200);
+    }
+  }, true);
+
+  function scanProductForms() {
+    syncKachingVariant();
+    overrideBundlePrices();
+    document.querySelectorAll('form[data-type="add-to-cart-form"], form[action="/cart/add"], form[action^="/cart/add"]').forEach(wireProductForm);
+  }
+  scanProductForms();
+  new MutationObserver(scanProductForms).observe(document.body, { childList: true, subtree: true });
+
+  /* Belt-and-suspenders: Katching re-renders the entire bar block when a
+     tier is clicked, which destroys per-bar observers and briefly exposes
+     Katching's own (wrong) numbers. A cheap interval keeps every tier
+     pinned to its static values no matter what Katching does. */
+  setInterval(function () {
+    if (document.querySelector('.kaching-bundles__bar')) overrideBundlePrices();
+  }, 200);
+})();
+}
+</script>

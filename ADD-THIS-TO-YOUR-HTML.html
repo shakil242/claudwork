@@ -1,0 +1,273 @@
+<!--
+================================================================================
+  STEP-BY-STEP INSTRUCTIONS
+================================================================================
+
+STEP 1: Find the LAST </script> tag before </body> in your HTML
+
+STEP 2: Add ALL the code below RIGHT AFTER that </script> tag
+
+STEP 3: Save and test
+
+================================================================================
+-->
+
+<!-- jQuery (if not already included) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+/**
+ * WORKING COLOR & VARIANT INTEGRATION
+ * Extracted from functional reference page
+ */
+
+$(document).ready(function() {
+
+  console.log('🚀 Color & Variant Integration Loading...');
+
+  // ============================================
+  // CONFIGURATION
+  // ============================================
+
+  const colorImageMap = {
+    'Chrome': 'https://image.qwenlm.ai/public_source/277601f3-da53-40da-8061-b30526ad8733/1918b3b61-1aa9-4236-bfe9-125bff3c2073.png',
+    'Nickel': 'https://image.qwenlm.ai/public_source/277601f3-da53-40da-8061-b30526ad8733/10f24000b-03b9-4efa-bece-dfc9f40333ef.png',
+    'Black': 'https://image.qwenlm.ai/public_source/277601f3-da53-40da-8061-b30526ad8733/1403d6deb-afa4-4e87-b5c6-e449c652340c.png'
+  };
+
+  // Map variant IDs
+  const variantMap = {
+    'Chrome': 336,
+    'Nickel': 337,
+    'Black': 338
+  };
+
+  // ============================================
+  // PRODUCT CHECKBOX UPDATES
+  // ============================================
+
+  function updateProductVariants() {
+    // Get all color selections
+    const color1 = getSelectedColor(1) || 'Chrome';
+    const color2 = getSelectedColor(2) || 'Nickel';
+    const color3 = getSelectedColor(3) || 'Black';
+
+    // Get current package
+    const activePackage = getActivePackage();
+
+    console.log('📦 Package:', activePackage, '| Colors:', color1, color2, color3);
+
+    // Update variants based on package
+    if (activePackage === 'buy1') {
+      updateProductCheckbox('144', variantMap[color1]);
+    } else if (activePackage === 'buy2') {
+      updateProductCheckbox('145', variantMap[color1]);
+      updateProductCheckbox('146', variantMap[color2]);
+    } else if (activePackage === 'buy3') {
+      updateProductCheckbox('147', variantMap[color1]);
+      updateProductCheckbox('148', variantMap[color2]);
+      updateProductCheckbox('149', variantMap[color3]);
+    }
+  }
+
+  function getActivePackage() {
+    // Check which product is checked
+    if ($('input[name="product"][value="144"]').is(':checked')) return 'buy1';
+    if ($('input[name="product"][value="145"]').is(':checked')) return 'buy2';
+    if ($('input[name="product"][value="147"]').is(':checked')) return 'buy3';
+
+    // Check old IDs and return what they should be
+    if ($('input[name="product"][value="102"]').is(':checked') ||
+        $('input[name="product"][value="105"]').is(':checked')) return 'buy1';
+    if ($('input[name="product"][value="125"]').is(':checked') ||
+        $('input[name="product"][value="104"]').is(':checked')) return 'buy2';
+    if ($('input[name="product"][value="126"]').is(':checked') ||
+        $('input[name="product"][value="103"]').is(':checked')) return 'buy3';
+
+    return 'buy3'; // default
+  }
+
+  function getSelectedColor(groupNum) {
+    // Try desktop first
+    const desktopActive = $(`#colorGroup${groupNum} .color-opt.active img`).attr('alt');
+    if (desktopActive) return desktopActive;
+
+    // Try mobile
+    const mobileValue = $(`#mobileColor${groupNum}`).val();
+    if (mobileValue) return mobileValue;
+
+    // Defaults
+    const defaults = { 1: 'Chrome', 2: 'Nickel', 3: 'Black' };
+    return defaults[groupNum];
+  }
+
+  function updateProductCheckbox(productId, variantId) {
+    const checkbox = $(`input[name="product"][value="${productId}"]`);
+    if (checkbox.length > 0) {
+      checkbox.attr('variantvalue', variantId);
+      console.log(`✅ Product ${productId} → Variant ${variantId}`);
+    }
+  }
+
+  // ============================================
+  // DROPDOWN TOGGLE
+  // ============================================
+
+  let suppressDocumentClose = false;
+
+  function suppressFor(ms) {
+    suppressDocumentClose = true;
+    clearTimeout(suppressFor._t);
+    suppressFor._t = setTimeout(() => {
+      suppressDocumentClose = false;
+    }, ms);
+  }
+
+  // Toggle dropdown
+  $('.selct-colorbx .color-tog, .color-chooseHdng').on('click', function(e) {
+    const $colorBox = $(this).closest('.selct-colorbx');
+    if ($colorBox.attr('data-disabled') === 'true') return;
+
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    suppressFor(250);
+
+    const $drawer = $(this).next('.color-drower');
+    $('.color-drower').not($drawer).slideUp(150);
+    $drawer.stop(true, true).slideToggle(200);
+  });
+
+  // Close dropdown when clicking outside
+  $(document).on('click', function(e) {
+    if (suppressDocumentClose) return;
+    if (!$(e.target).closest('.selct-colorbx').length) {
+      $('.color-drower').slideUp(150);
+    }
+  });
+
+  // Prevent dropdown close when clicking inside
+  $('.selct-colorbx .color-drower').on('click', function(e) {
+    e.stopPropagation();
+  });
+
+  // ============================================
+  // COLOR SELECTION (Desktop)
+  // ============================================
+
+  $('.color-opt').on('click', function(e) {
+    const $this = $(this);
+    const $parent = $this.closest('.color-options');
+
+    // Remove active from siblings
+    $parent.find('.color-opt').removeClass('active');
+
+    // Add active to clicked
+    $this.addClass('active');
+
+    // Get color name
+    const colorName = $this.find('img').attr('alt') || 'Chrome';
+
+    // Update label
+    const $group = $this.closest('[id^="colorGroup"]');
+    const $label = $group.find('.color-group-label span');
+    if ($label.length) {
+      $label.text(colorName);
+    }
+
+    // Update product variants
+    setTimeout(() => {
+      updateProductVariants();
+    }, 100);
+  });
+
+  // ============================================
+  // COLOR SELECTION (Mobile Dropdowns)
+  // ============================================
+
+  $('#mobileColor1, #mobileColor2, #mobileColor3').on('change', function() {
+    const colorValue = $(this).val();
+    const groupNum = $(this).attr('id').replace('mobileColor', '');
+
+    console.log(`🎨 Mobile Color ${groupNum} changed to: ${colorValue}`);
+
+    // Update desktop selection to match
+    const $desktopGroup = $(`#colorGroup${groupNum}`);
+    $desktopGroup.find('.color-opt').removeClass('active');
+    $desktopGroup.find(`img[alt="${colorValue}"]`).closest('.color-opt').addClass('active');
+
+    // Update product variants
+    setTimeout(() => {
+      updateProductVariants();
+    }, 100);
+  });
+
+  // ============================================
+  // COLOR SELECTION (Dropdown Style - from your original)
+  // ============================================
+
+  $('.selct-colorbx .color-drower li').on('click', function(e) {
+    e.stopPropagation();
+
+    const $li = $(this);
+    const $box = $li.closest('.selct-colorbx');
+
+    if ($box.attr('data-disabled') === 'true') return;
+
+    const colorName = $li.text().trim();
+    const colorKey = $li.attr('data-color');
+    const $drawer = $box.find('.color-drower');
+    const $nameSpan = $box.find('.color-chooseHdng p');
+    const colorClass = $li.find('p').attr('class') || 'color1';
+
+    // Update UI
+    $nameSpan.attr('class', colorClass);
+    $nameSpan.html(`<span></span>${colorName}`);
+    $drawer.slideUp(150);
+
+    console.log(`🎨 Color changed to: ${colorName}`);
+
+    // Update product variants
+    setTimeout(() => {
+      updateProductVariants();
+    }, 100);
+  });
+
+  // ============================================
+  // PRODUCT CHECKBOX CHANGE
+  // ============================================
+
+  $('input[name="product"]').on('change', function() {
+    console.log('📦 Product changed:', $(this).val());
+    setTimeout(() => {
+      updateProductVariants();
+    }, 100);
+  });
+
+  // ============================================
+  // INITIAL LOAD
+  // ============================================
+
+  setTimeout(() => {
+    console.log('🎯 Initial variant update...');
+    updateProductVariants();
+  }, 500);
+
+  setTimeout(() => {
+    updateProductVariants();
+  }, 1500);
+
+  console.log('✅ Color & Variant Integration Ready');
+});
+</script>
+
+<!--
+================================================================================
+  DONE!
+
+  Now test your page:
+  1. Open browser console (F12)
+  2. You should see: ✅ Color & Variant Integration Ready
+  3. Select different colors - variants should update
+  4. Check console logs: ✅ Product 144 → Variant 336
+================================================================================
+-->

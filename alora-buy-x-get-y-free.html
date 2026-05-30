@@ -1,0 +1,188 @@
+<!--
+  ALORA checkout — "Buy X Get Y Free" VISUAL order-summary display + loader.
+
+  The customer buys ONE bundle line item named e.g. "Buy 3 Get 2 Free".
+  We parse the numbers and display:
+      main product row : quantity badge = X  ("Buy X")
+      one FREE row      : quantity badge = Y  ("Get Y Free"), price FREE
+
+      "Buy 2 Get 1 Free" -> main badge 2, free row badge 1
+      "Buy 3 Get 2 Free" -> main badge 3, free row badge 2
+
+  A small spinner covers the order summary until the cart has settled, so the
+  brief CheckoutChamp re-render flicker isn't visible. Visual only — does NOT
+  change what CheckoutChamp charges.
+
+  Paste this <script> block into the ALORA CheckoutChamp page (before </body>).
+-->
+<script script-type="user-script">
+  (function () {
+    'use strict';
+
+    // ---- one-time CSS (loader + fade) -------------------------------------
+    (function injectCss() {
+      if (document.getElementById('cc-bonus-style')) return;
+      var s = document.createElement('style');
+      s.id = 'cc-bonus-style';
+      s.textContent =
+        '.cc-bonus-loading{position:relative;min-height:120px;}' +
+        '.cc-bonus-loading > *{opacity:0 !important;pointer-events:none;}' +
+        '.cc-bonus-loading::after{content:"";position:absolute;top:40px;left:50%;' +
+        'width:28px;height:28px;margin-left:-14px;border:3px solid #d9d9d9;' +
+        'border-top-color:#111;border-radius:50%;animation:ccbspin .7s linear infinite;z-index:10;}' +
+        '@keyframes ccbspin{to{transform:rotate(360deg);}}' +
+        '.cc-bonus-ready > *{opacity:1 !important;transition:opacity .25s ease;}';
+      (document.head || document.documentElement).appendChild(s);
+    })();
+
+    function wrappers() { return document.querySelectorAll('.cc-cart-wrapper'); }
+    function setLoading(on) {
+      wrappers().forEach(function (w) {
+        if (on) { w.classList.add('cc-bonus-loading'); w.classList.remove('cc-bonus-ready'); }
+        else { w.classList.remove('cc-bonus-loading'); w.classList.add('cc-bonus-ready'); }
+      });
+    }
+
+    // ---- deal parsing / helpers -------------------------------------------
+    function parseDeal(row) {
+      var text = (row.textContent || '').replace(/\s+/g, ' ');
+      var m = text.match(/buy\s+(\d+)\s+get\s+(\d+)\s+free/i);
+      if (m) return { buy: parseInt(m[1], 10), free: parseInt(m[2], 10) };
+      var g = text.match(/get\s+(\d+)\s+free/i);
+      if (g) return { buy: 1, free: parseInt(g[1], 10) };
+      return { buy: 0, free: 0 };
+    }
+
+    function setBadge(row, n) {
+      var b = row.querySelector('.cc-cart-prod-qty-bubble');
+      if (b && b.textContent.trim() !== String(n)) b.textContent = String(n);
+    }
+
+    function findMainRow(container) {
+      var rows = container.querySelectorAll('.cc-cart-row');
+      for (var i = 0; i < rows.length; i++) {
+        var row = rows[i];
+        if (row.classList.contains('bonus-free-row')) continue;
+        if (row.style.display === 'none') continue;
+        var t = row.querySelector('.cc-cart-row-prod-title');
+        if (!t) continue;
+        var txt = t.textContent.trim();
+        if (!txt || txt === 'Name' || txt === 'title') continue;
+        return row;
+      }
+      return null;
+    }
+
+    function priceLooksReal(row) {
+      var p = row.querySelector('.cc-cart-row-prod-price');
+      if (!p) return false;
+      var v = parseFloat((p.textContent || '').replace(/[^0-9.]/g, ''));
+      return !isNaN(v) && v > 0;
+    }
+
+    function buildFreeRow(mainRow, baseTitle, freeQty) {
+      var clone = mainRow.cloneNode(true);
+      clone.classList.add('bonus-free-row');
+      clone.removeAttribute('id');
+      var withIds = clone.querySelectorAll('[id]');
+      for (var x = 0; x < withIds.length; x++) withIds[x].removeAttribute('id');
+
+      var title = clone.querySelector('.cc-cart-row-prod-title');
+      if (title) title.textContent = baseTitle + ' (Free)';
+
+      var variant = clone.querySelector('.cc-cart-row-variant');
+      if (variant) {
+        var vparent = variant.parentNode;
+        variant.remove();
+        if (vparent && !vparent.children.length) vparent.remove();
+      }
+
+      var titleWrap = title ? title.closest('.dDm6x') : null;
+      if (titleWrap) {
+        titleWrap.style.display = 'flex';
+        titleWrap.style.flexDirection = 'column';
+        titleWrap.style.justifyContent = 'center';
+        titleWrap.style.minHeight = '64px';
+      }
+
+      var prices = clone.querySelectorAll('.cc-cart-row-prod-price');
+      for (var p = 0; p < prices.length; p++) prices[p].textContent = 'FREE';
+      var compares = clone.querySelectorAll('.cc-cart-row-prod-compare');
+      for (var cp = 0; cp < compares.length; cp++) compares[cp].textContent = '';
+
+      var mainBubble = mainRow.querySelector('.cc-cart-prod-qty-bubble');
+      var cloneBubble = clone.querySelector('.cc-cart-prod-qty-bubble');
+      if (cloneBubble) {
+        if (mainBubble) cloneBubble.className = mainBubble.className;
+        cloneBubble.textContent = String(freeQty);
+      }
+      return clone;
+    }
+
+    var settled = false;
+
+    function injectFree() {
+      var sawRealProduct = false;
+      var containers = document.querySelectorAll('.cc-cart-container');
+
+      for (var c = 0; c < containers.length; c++) {
+        var container = containers[c];
+        var mainRow = findMainRow(container);
+        var existing = container.querySelectorAll('.bonus-free-row');
+
+        if (!mainRow) {
+          for (var e = 0; e < existing.length; e++) existing[e].remove();
+          container._bonusKey = '';
+          continue;
+        }
+
+        if (priceLooksReal(mainRow)) sawRealProduct = true;
+
+        var deal = parseDeal(mainRow);
+        var baseTitle = mainRow.querySelector('.cc-cart-row-prod-title').textContent.trim();
+        var mainBubble = mainRow.querySelector('.cc-cart-prod-qty-bubble');
+        var bubbleClass = mainBubble ? mainBubble.className : '';
+        var want = deal.free > 0 ? 1 : 0;
+
+        if (deal.buy > 0) setBadge(mainRow, deal.buy);
+
+        var key = baseTitle + '|' + deal.buy + '|' + deal.free + '|' + bubbleClass;
+        if (container._bonusKey === key && existing.length === want) {
+          for (var q = 0; q < existing.length; q++) setBadge(existing[q], deal.free);
+          continue;
+        }
+        container._bonusKey = key;
+        for (var e2 = 0; e2 < existing.length; e2++) existing[e2].remove();
+        if (want) {
+          var freeRow = buildFreeRow(mainRow, baseTitle, deal.free);
+          mainRow.parentNode.insertBefore(freeRow, mainRow.nextSibling);
+        }
+      }
+
+      // Reveal once the real product (non-zero price) has rendered.
+      if (!settled && sawRealProduct) {
+        settled = true;
+        setTimeout(function () { setLoading(false); }, 350);
+      }
+    }
+
+    // Debounced runner.
+    var pending = null;
+    function schedule() {
+      if (pending) return;
+      pending = setTimeout(function () { pending = null; injectFree(); }, 100);
+    }
+
+    // Show the loader ASAP, run, and never leave it spinning forever.
+    setLoading(true);
+    new MutationObserver(schedule).observe(document.body, { childList: true, subtree: true });
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function () { setLoading(true); injectFree(); });
+    } else {
+      injectFree();
+    }
+    window.addEventListener('load', function () { setTimeout(injectFree, 600); });
+    // Hard cap: always reveal after 5s even if price never reads as > 0.
+    setTimeout(function () { if (!settled) { settled = true; setLoading(false); } }, 5000);
+  })();
+</script>
