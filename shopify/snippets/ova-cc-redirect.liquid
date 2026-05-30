@@ -103,6 +103,66 @@ window._ovaCcRedirectInit = true;
     if (!btn) return;
     redirectToCC(e);
   }, true);
+
+  /* ──────────────────────────────────────────────────────────────
+     Product page: when a variant in our map is currently selected and
+     Shopify has disabled the ATC ("Sold out"), force-enable it, relabel
+     it "BUY NOW", and on submit go straight to CheckoutChamp — bypassing
+     Shopify cart + inventory.
+     ────────────────────────────────────────────────────────────── */
+  function variantIdFromForm(form) {
+    var i = form.querySelector('input.product-variant-id, input[name="id"]');
+    return i ? String(i.value || '') : '';
+  }
+
+  function isSubscriptionOnPage(form) {
+    /* Selling-plan input inside or near the product form */
+    var sp = form.querySelector('input[name="selling_plan"], input[name="selling_plan_id"], input[name="properties[__shopify_selling_plan]"]');
+    if (sp && sp.value && sp.value !== '0') return true;
+    /* Katching / common subscription toggles */
+    var t = document.querySelector('[data-kaching-subscription]:checked, [data-kaching-sub]:checked, input[name*="selling_plan"]:checked');
+    return !!t;
+  }
+
+  function redirectFromForm(form) {
+    var vid = variantIdFromForm(form);
+    var m = VARIANT_CC_MAP[vid];
+    if (!m) return false;
+    var ccId = isSubscriptionOnPage(form) ? (m.sub || m.ot) : m.ot;
+    var url = CC_BASE + '?products=' + ccId + ':1&cartId=' + cookie('cart');
+    var aff = cookie('affId');
+    if (aff) url += '&affId=' + aff;
+    window.location.href = url;
+    return true;
+  }
+
+  function wireProductForm(form) {
+    if (!form || form._ovaWired) return;
+    var vid = variantIdFromForm(form);
+    if (!VARIANT_CC_MAP[vid]) return; /* not one of ours */
+    form._ovaWired = true;
+
+    var btn = form.querySelector('button[type="submit"], button[name="add"]');
+    if (btn) {
+      if (btn.disabled || btn.getAttribute('data-unavailable') === 'true') {
+        btn.disabled = false;
+        btn.removeAttribute('disabled');
+        btn.setAttribute('data-unavailable', 'false');
+        var label = btn.querySelector('.main-atc__label__text, .product-form__submit-text, .button__label, span');
+        if (label) label.textContent = 'BUY NOW';
+      }
+    }
+
+    form.addEventListener('submit', function (e) {
+      if (redirectFromForm(form)) { e.preventDefault(); e.stopImmediatePropagation(); }
+    }, true);
+  }
+
+  function scanProductForms() {
+    document.querySelectorAll('form[data-type="add-to-cart-form"], form[action="/cart/add"], form[action^="/cart/add"]').forEach(wireProductForm);
+  }
+  scanProductForms();
+  new MutationObserver(scanProductForms).observe(document.body, { childList: true, subtree: true });
 })();
 }
 </script>
