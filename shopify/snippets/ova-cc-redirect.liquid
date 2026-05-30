@@ -3,14 +3,12 @@
   snippets/ova-cc-redirect.liquid
 
   Redirects the Shopify cart/cart-drawer "Checkout" button to the
-  CheckoutChamp checkout, passing the cart's products + cartId.
+  CheckoutChamp checkout, building products=offerId.itemId:qty from the
+  cart. Picks the subscription offer when the line item has a Shopify
+  selling plan; otherwise uses the one-time offer.
 
   Install: add to theme.liquid (once, before </body>):
       {% render 'ova-cc-redirect' %}
-
-  Then fill in VARIANT_CC_MAP below: Shopify variant id -> CheckoutChamp
-  product id. Any variant not in the map is ignored; if nothing maps,
-  the normal /checkout is used as a safe fallback.
 {% endcomment %}
 
 <script>
@@ -20,17 +18,40 @@ window._ovaCcRedirectInit = true;
   'use strict';
 
   var CC_BASE = 'https://secure.tryovalife.com/checkout';
+  var SEP     = ';'; /* products separator: ';' for multiple; switch to ',' if your campaign expects commas */
 
-  /* Shopify variant ID (as string) -> CheckoutChamp product ID */
+  /* Shopify variant id -> { ot: one-time offer.item, sub: subscription offer.item } */
   var VARIANT_CC_MAP = {
-    // '50123456789012': '101',
-    // '50123456789013': '102',
-    // '50123456789014': '103'
-  };
+    /* Berberine Blood Sugar Support Drops */
+    '57761187332444': { ot: '1.7',  sub: '15.7'  },
+    '57761187365212': { ot: '1.8',  sub: '16.8'  },
+    '57761187397980': { ot: '1.9',  sub: '17.9'  },
 
-  /* CheckoutChamp products separator: ';' for multiple products. Change to
-     ',' if your CC campaign expects commas. */
-  var SEP = ';';
+    /* Complete 3-Phase Liver Support */
+    '57761171964252': { ot: '2.10', sub: '18.10' },
+    '57761171997020': { ot: '2.11', sub: '19.11' },
+    '57761172029788': { ot: '2.12', sub: '20.12' },
+
+    /* Complete Liver Detox & Insulin Reset */
+    '57765138006364': { ot: '3.13', sub: '21.13' },
+    '57761110884700': { ot: '3.14', sub: '22.14' },
+    '57765146591580': { ot: '3.15', sub: '23.15' },
+
+    /* Irish Seamoss Thyroid Hormone Regulator (A) */
+    '57765170970972': { ot: '4.16', sub: '24.16' },
+    '57765171003740': { ot: '4.17', sub: '25.17' },
+    '57765171036508': { ot: '4.18', sub: '26.18' },
+
+    /* Irish Seamoss Thyroid Hormone Regulator (B) */
+    '57765168382300': { ot: '6.22', sub: '27.22' },
+    '57765168415068': { ot: '6.23', sub: '28.23' },
+    '57765168447836': { ot: '6.24', sub: '29.24' },
+
+    /* Irish Saw Palmetto Complete Prostate Support */
+    '57736719106396': { ot: '11.19', sub: '12.19' },
+    '57736719139164': { ot: '11.20', sub: '13.20' },
+    '57765157208412': { ot: '11.21', sub: '14.21' }
+  };
 
   /* Checkout buttons to intercept (cart drawer + cart page). */
   var CHECKOUT_SELECTORS = [
@@ -47,6 +68,14 @@ window._ovaCcRedirectInit = true;
     return m ? decodeURIComponent(m[1]) : '';
   }
 
+  /* A line item is a subscription when Shopify attached a selling plan. */
+  function isSubscription(item) {
+    if (item.selling_plan_allocation) return true;
+    if (item.selling_plan_id) return true;
+    if (item.properties && (item.properties._selling_plan || item.properties.selling_plan)) return true;
+    return false;
+  }
+
   function redirectToCC(e) {
     if (e) { e.preventDefault(); e.stopImmediatePropagation(); }
     fetch('/cart.js', { headers: { 'Accept': 'application/json' } })
@@ -54,10 +83,12 @@ window._ovaCcRedirectInit = true;
       .then(function (cart) {
         var parts = [];
         (cart.items || []).forEach(function (item) {
-          var ccId = VARIANT_CC_MAP[String(item.variant_id)] || VARIANT_CC_MAP[String(item.id)];
+          var map = VARIANT_CC_MAP[String(item.variant_id)] || VARIANT_CC_MAP[String(item.id)];
+          if (!map) return;
+          var ccId = isSubscription(item) ? (map.sub || map.ot) : map.ot;
           if (ccId) parts.push(ccId + ':' + item.quantity);
         });
-        if (!parts.length) { window.location.href = '/checkout'; return; } /* nothing mapped */
+        if (!parts.length) { window.location.href = '/checkout'; return; } /* nothing mapped -> normal checkout */
         var url = CC_BASE + '?products=' + parts.join(SEP) + '&cartId=' + cookie('cart');
         var aff = cookie('affId');
         if (aff) url += '&affId=' + aff;
