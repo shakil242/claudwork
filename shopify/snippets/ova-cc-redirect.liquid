@@ -270,6 +270,16 @@ window._ovaCcRedirectInit = true;
     if (!bars.length) return;
     var sub = subOn();
     bars.forEach(function (bar, idx) {
+      /* Stash the variant id (Katching prints it as the label) and replace
+         the visible label with a clean "N Bottle(s)" string. */
+      var labelEl = bar.querySelector('.kaching-bundles__bar-label');
+      if (labelEl) {
+        var raw = (labelEl.textContent || '').trim();
+        var digits = raw.replace(/\D/g, '');
+        if (digits && digits.length >= 6) {
+          if (!bar.dataset.ovaVariantId) bar.dataset.ovaVariantId = digits;
+        }
+      }
       var bottles = bottlesForBar(bar, idx);
       var subAmt  = SUB_UNIT * bottles;
       var otAmt   = subAmt * (1 + OT_MARKUP);
@@ -277,8 +287,14 @@ window._ovaCcRedirectInit = true;
       var compare = otAmt; /* compare-at: shows full OT price when sub is on */
       var priceText   = fmt(price);
       var compareText = fmt(compare);
+      var friendly   = bottles + (bottles === 1 ? ' Bottle' : ' Bottles');
+      if (labelEl && labelEl.textContent.trim() !== friendly) {
+        labelEl.textContent = friendly;
+      }
 
-      /* Main price element(s). */
+      /* Main price element(s). Always overwrite — Katching repaints the
+         selected tier with its own numbers, so caching by attribute lets
+         stale values stick. */
       var priceEls = bar.querySelectorAll(
         '.kaching-bundles__bar-price, ' +
         '.kaching-bundles__bar-discounted-price, ' +
@@ -286,13 +302,12 @@ window._ovaCcRedirectInit = true;
         '[class*="bar-price"]:not([class*="compare"])'
       );
       priceEls.forEach(function (el) {
-        if (el.getAttribute('data-ova-price') !== priceText) {
-          el.textContent = priceText;
-          el.setAttribute('data-ova-price', priceText);
-        }
+        if (el.textContent !== priceText) el.textContent = priceText;
       });
 
-      /* Compare-at / struck-through. Only show when sub is on (real saving). */
+      /* Compare-at / struck-through. Only shown when sub is on (real saving).
+         Always pin to THIS bar's compare value so selecting another tier
+         can't shuffle it. */
       var cmpEls = bar.querySelectorAll(
         '.kaching-bundles__bar-compare-price, ' +
         '.kaching-bundles__bar-original-price, ' +
@@ -300,13 +315,12 @@ window._ovaCcRedirectInit = true;
       );
       cmpEls.forEach(function (el) {
         if (sub) {
-          el.textContent = compareText;
+          if (el.textContent !== compareText) el.textContent = compareText;
           el.style.display = '';
         } else {
-          el.textContent = '';
+          if (el.textContent !== '') el.textContent = '';
           el.style.display = 'none';
         }
-        el.setAttribute('data-ova-cmp', '1');
       });
     });
   }
@@ -323,9 +337,12 @@ window._ovaCcRedirectInit = true;
       if (checked) sel = checked.closest('.kaching-bundles__bar');
     }
     if (!sel) return;
-    var labelEl = sel.querySelector('.kaching-bundles__bar-label');
-    if (!labelEl) return;
-    var vid = (labelEl.textContent || '').replace(/\D/g, '');
+    var vid = sel.dataset && sel.dataset.ovaVariantId ? sel.dataset.ovaVariantId : '';
+    if (!vid) {
+      var labelEl = sel.querySelector('.kaching-bundles__bar-label');
+      if (!labelEl) return;
+      vid = (labelEl.textContent || '').replace(/\D/g, '');
+    }
     if (!vid) return;
     document.querySelectorAll(
       'form[data-type="add-to-cart-form"] input.product-variant-id, ' +
@@ -341,15 +358,24 @@ window._ovaCcRedirectInit = true;
     });
   }
 
-  /* Sync on tier click (radio or bar). */
+  /* Sync + repaint prices on tier click (radio or bar). Multiple delays so
+     we win whether Katching re-renders before or after our handler. */
+  function repaintAfterTierChange() {
+    syncKachingVariant();
+    overrideBundlePrices();
+  }
   document.addEventListener('click', function (e) {
     if (!e.target.closest('.kaching-bundles__bar, .kaching-bundles__bar-radio, .kaching-bundles__bar-main, .kaching-bundles__bar-container')) return;
-    setTimeout(syncKachingVariant, 30);
-    setTimeout(syncKachingVariant, 200);
+    repaintAfterTierChange();
+    setTimeout(repaintAfterTierChange, 30);
+    setTimeout(repaintAfterTierChange, 200);
+    setTimeout(repaintAfterTierChange, 500);
   }, true);
   document.addEventListener('change', function (e) {
     if (e.target && e.target.matches && e.target.matches('.kaching-bundles__bar input[type="radio"]')) {
-      setTimeout(syncKachingVariant, 30);
+      repaintAfterTierChange();
+      setTimeout(repaintAfterTierChange, 30);
+      setTimeout(repaintAfterTierChange, 200);
     }
   }, true);
 
