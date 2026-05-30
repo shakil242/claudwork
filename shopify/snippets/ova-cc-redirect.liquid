@@ -242,12 +242,15 @@ window._ovaCcRedirectInit = true;
   }
 
   /* Override each Katching tier's displayed price:
-        1 bottle  -> sub $64.00    one-time $76.80   (sub +20% = OT)
+        1 bottle  -> sub $64.00    one-time $76.80
         2 bottles -> sub $128.00   one-time $153.60
         3 bottles -> sub $192.00   one-time $230.40
-     Sub price shows when our subscription toggle is checked, otherwise OT. */
-  var SUB_UNIT  = 64;
-  var OT_MARKUP = 0.20;
+     Sub price shows when our subscription toggle is checked, otherwise OT.
+     Compare-at (struck-through MSRP) is STATIC per tier and never shuffles
+     when the user clicks another tier. */
+  var SUB_UNIT       = 64;
+  var OT_MARKUP      = 0.20;
+  var STATIC_COMPARE = { 1: null, 2: 327, 3: 545 };
   function fmt(n) { return '$' + n.toFixed(2); }
   function bottlesForBar(bar, index) {
     var t = (bar.textContent || '').replace(/\s+/g, ' ');
@@ -284,10 +287,10 @@ window._ovaCcRedirectInit = true;
       var subAmt  = SUB_UNIT * bottles;
       var otAmt   = subAmt * (1 + OT_MARKUP);
       var price   = sub ? subAmt : otAmt;
-      var compare = otAmt; /* compare-at: shows full OT price when sub is on */
+      var compareAmt  = STATIC_COMPARE[bottles]; /* null = hide compare-at */
       var priceText   = fmt(price);
-      var compareText = fmt(compare);
-      var friendly   = bottles + (bottles === 1 ? ' Bottle' : ' Bottles');
+      var compareText = compareAmt != null ? fmt(compareAmt) : '';
+      var friendly    = bottles + (bottles === 1 ? ' Bottle' : ' Bottles');
       if (labelEl && labelEl.textContent.trim() !== friendly) {
         labelEl.textContent = friendly;
       }
@@ -305,23 +308,85 @@ window._ovaCcRedirectInit = true;
         if (el.textContent !== priceText) el.textContent = priceText;
       });
 
-      /* Compare-at / struck-through. Only shown when sub is on (real saving).
-         Always pin to THIS bar's compare value so selecting another tier
-         can't shuffle it. */
+      /* Compare-at / struck-through. STATIC per tier — never depends on
+         selection state or subscription state. Tier 1 has none. */
       var cmpEls = bar.querySelectorAll(
         '.kaching-bundles__bar-compare-price, ' +
         '.kaching-bundles__bar-original-price, ' +
-        '[class*="compare-price"], [class*="original-price"]'
+        '.kaching-bundles__bar-mrp, ' +
+        '.kaching-bundles__bar-strike, ' +
+        '[class*="compare-price"], [class*="compare_price"], ' +
+        '[class*="original-price"], [class*="original_price"], ' +
+        '[class*="mrp"], [class*="strike"], [class*="old-price"], ' +
+        'del, s, strike'
       );
       cmpEls.forEach(function (el) {
-        if (sub) {
-          if (el.textContent !== compareText) el.textContent = compareText;
-          el.style.display = '';
-        } else {
+        if (compareAmt == null) {
           if (el.textContent !== '') el.textContent = '';
           el.style.display = 'none';
+        } else {
+          if (el.textContent !== compareText) el.textContent = compareText;
+          el.style.display = '';
         }
       });
+
+      /* Watch this bar for Katching repaints and immediately re-apply. */
+      if (!bar._ovaObs) {
+        bar._ovaObs = new MutationObserver(function () {
+          if (bar._ovaApplying) return;
+          bar._ovaApplying = true;
+          try { applyBar(bar, idx); } finally { bar._ovaApplying = false; }
+        });
+        bar._ovaObs.observe(bar, { childList: true, subtree: true, characterData: true });
+      }
+    });
+  }
+
+  /* Single-bar version used by the per-bar MutationObserver. */
+  function applyBar(bar, idx) {
+    var sub = subOn();
+    var bottles = bottlesForBar(bar, idx);
+    var subAmt = SUB_UNIT * bottles;
+    var otAmt  = subAmt * (1 + OT_MARKUP);
+    var price  = sub ? subAmt : otAmt;
+    var compareAmt = STATIC_COMPARE[bottles];
+    var priceText   = fmt(price);
+    var compareText = compareAmt != null ? fmt(compareAmt) : '';
+    var labelEl = bar.querySelector('.kaching-bundles__bar-label');
+    if (labelEl) {
+      var raw = (labelEl.textContent || '').trim();
+      var digits = raw.replace(/\D/g, '');
+      if (digits && digits.length >= 6 && !bar.dataset.ovaVariantId) {
+        bar.dataset.ovaVariantId = digits;
+      }
+      var friendly = bottles + (bottles === 1 ? ' Bottle' : ' Bottles');
+      if (labelEl.textContent.trim() !== friendly) labelEl.textContent = friendly;
+    }
+    bar.querySelectorAll(
+      '.kaching-bundles__bar-price, ' +
+      '.kaching-bundles__bar-discounted-price, ' +
+      '.kaching-bundles__bar-final-price, ' +
+      '[class*="bar-price"]:not([class*="compare"])'
+    ).forEach(function (el) {
+      if (el.textContent !== priceText) el.textContent = priceText;
+    });
+    bar.querySelectorAll(
+      '.kaching-bundles__bar-compare-price, ' +
+      '.kaching-bundles__bar-original-price, ' +
+      '.kaching-bundles__bar-mrp, ' +
+      '.kaching-bundles__bar-strike, ' +
+      '[class*="compare-price"], [class*="compare_price"], ' +
+      '[class*="original-price"], [class*="original_price"], ' +
+      '[class*="mrp"], [class*="strike"], [class*="old-price"], ' +
+      'del, s, strike'
+    ).forEach(function (el) {
+      if (compareAmt == null) {
+        if (el.textContent !== '') el.textContent = '';
+        el.style.display = 'none';
+      } else {
+        if (el.textContent !== compareText) el.textContent = compareText;
+        el.style.display = '';
+      }
     });
   }
 
