@@ -137,25 +137,36 @@ window._ovaCcRedirectInit = true;
   }
 
   function wireProductForm(form) {
-    if (!form || form._ovaWired) return;
+    if (!form) return;
     var vid = variantIdFromForm(form);
     if (!VARIANT_CC_MAP[vid]) return; /* not one of ours */
-    form._ovaWired = true;
 
+    /* Re-apply the enable/relabel on EVERY pass — Katching re-renders the
+       form when the user picks a tier, which restores 'disabled' + 'Sold out'. */
     var btn = form.querySelector('button[type="submit"], button[name="add"]');
-    if (btn) {
-      if (btn.disabled || btn.getAttribute('data-unavailable') === 'true') {
-        btn.disabled = false;
-        btn.removeAttribute('disabled');
-        btn.setAttribute('data-unavailable', 'false');
-        var label = btn.querySelector('.main-atc__label__text, .product-form__submit-text, .button__label, span');
-        if (label) label.textContent = 'BUY NOW';
-      }
+    if (btn && (btn.disabled || btn.hasAttribute('disabled') || btn.getAttribute('data-unavailable') === 'true')) {
+      btn.disabled = false;
+      btn.removeAttribute('disabled');
+      btn.setAttribute('data-unavailable', 'false');
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+      btn.style.cursor = 'pointer';
+      var label = btn.querySelector('.main-atc__label__text, .product-form__submit-text, .button__label, span');
+      if (label && /sold\s*out/i.test(label.textContent)) label.textContent = 'BUY NOW';
     }
 
+    /* Attach submit listener only once per form element. */
+    if (form._ovaWired) return;
+    form._ovaWired = true;
     form.addEventListener('submit', function (e) {
       if (redirectFromForm(form)) { e.preventDefault(); e.stopImmediatePropagation(); }
     }, true);
+    /* Also handle click on the button (in case theme blocks form submit). */
+    if (btn) {
+      btn.addEventListener('click', function (e) {
+        if (redirectFromForm(form)) { e.preventDefault(); e.stopImmediatePropagation(); }
+      }, true);
+    }
   }
 
   function scanProductForms() {
