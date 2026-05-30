@@ -141,18 +141,30 @@ window._ovaCcRedirectInit = true;
     var vid = variantIdFromForm(form);
     if (!VARIANT_CC_MAP[vid]) return; /* not one of ours */
 
-    /* Re-apply the enable/relabel on EVERY pass — Katching re-renders the
-       form when the user picks a tier, which restores 'disabled' + 'Sold out'. */
+    /* Re-apply the enable on every pass — Katching re-renders the form when
+       the user picks a tier, which restores 'disabled'. */
     var btn = form.querySelector('button[type="submit"], button[name="add"]');
-    if (btn && (btn.disabled || btn.hasAttribute('disabled') || btn.getAttribute('data-unavailable') === 'true')) {
-      btn.disabled = false;
-      btn.removeAttribute('disabled');
-      btn.setAttribute('data-unavailable', 'false');
-      btn.style.opacity = '1';
-      btn.style.pointerEvents = 'auto';
-      btn.style.cursor = 'pointer';
-      var label = btn.querySelector('.main-atc__label__text, .product-form__submit-text, .button__label, span');
-      if (label && /sold\s*out/i.test(label.textContent)) label.textContent = 'BUY NOW';
+    if (btn) {
+      if (btn.disabled || btn.hasAttribute('disabled') || btn.getAttribute('data-unavailable') === 'true') {
+        btn.disabled = false;
+        btn.removeAttribute('disabled');
+        btn.setAttribute('data-unavailable', 'false');
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+        btn.style.cursor = 'pointer';
+      }
+      /* Relabel ALWAYS — independent of disabled state — because Katching
+         can re-set the label text back to 'Sold out' even on enabled buttons. */
+      var label = btn.querySelector('.main-atc__label__text, .product-form__submit-text, .button__label');
+      if (label && /sold\s*out/i.test(label.textContent)) {
+        label.textContent = 'BUY NOW';
+      } else if (!label) {
+        /* Fallback: rewrite direct text nodes that say Sold out */
+        for (var i = 0; i < btn.childNodes.length; i++) {
+          var n = btn.childNodes[i];
+          if (n.nodeType === 3 && /sold\s*out/i.test(n.textContent)) { n.textContent = 'BUY NOW'; break; }
+        }
+      }
     }
 
     /* Attach submit listener only once per form element. */
