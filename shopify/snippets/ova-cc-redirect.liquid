@@ -237,7 +237,50 @@ window._ovaCcRedirectInit = true;
     });
   }
 
+  /* Read the variant id shown in the SELECTED Katching bundle bar's label
+     and write it into the Shopify form's hidden id input. Katching renders
+     the variant id as plain text inside .kaching-bundles__bar-label. */
+  function syncKachingVariant() {
+    var bars = document.querySelectorAll('.kaching-bundles__bar');
+    if (!bars.length) return;
+    var sel = document.querySelector('.kaching-bundles__bar--selected');
+    if (!sel) {
+      var checked = document.querySelector('.kaching-bundles__bar input[type="radio"]:checked');
+      if (checked) sel = checked.closest('.kaching-bundles__bar');
+    }
+    if (!sel) return;
+    var labelEl = sel.querySelector('.kaching-bundles__bar-label');
+    if (!labelEl) return;
+    var vid = (labelEl.textContent || '').replace(/\D/g, '');
+    if (!vid) return;
+    document.querySelectorAll(
+      'form[data-type="add-to-cart-form"] input.product-variant-id, ' +
+      'form[data-type="add-to-cart-form"] input[name="id"], ' +
+      'form[action^="/cart/add"] input.product-variant-id, ' +
+      'form[action^="/cart/add"] input[name="id"]'
+    ).forEach(function (inp) {
+      if (inp.value !== vid) {
+        inp.value = vid;
+        inp.setAttribute('value', vid);
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    });
+  }
+
+  /* Sync on tier click (radio or bar). */
+  document.addEventListener('click', function (e) {
+    if (!e.target.closest('.kaching-bundles__bar, .kaching-bundles__bar-radio, .kaching-bundles__bar-main, .kaching-bundles__bar-container')) return;
+    setTimeout(syncKachingVariant, 30);
+    setTimeout(syncKachingVariant, 200);
+  }, true);
+  document.addEventListener('change', function (e) {
+    if (e.target && e.target.matches && e.target.matches('.kaching-bundles__bar input[type="radio"]')) {
+      setTimeout(syncKachingVariant, 30);
+    }
+  }, true);
+
   function scanProductForms() {
+    syncKachingVariant();
     document.querySelectorAll('form[data-type="add-to-cart-form"], form[action="/cart/add"], form[action^="/cart/add"]').forEach(wireProductForm);
   }
   scanProductForms();
