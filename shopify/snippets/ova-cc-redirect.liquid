@@ -234,6 +234,76 @@ window._ovaCcRedirectInit = true;
     cb.addEventListener('change', function () {
       box.classList.toggle('is-on', cb.checked);
       try { localStorage.setItem('ovaSubOn', cb.checked ? '1' : '0'); } catch (e) {}
+      overrideBundlePrices();
+    });
+  }
+
+  /* Override each Katching tier's displayed price:
+        1 bottle  -> $64.00    sub $51.20  (20% off)
+        2 bottles -> $128.00   sub $102.40
+        3 bottles -> $192.00   sub $153.60
+     Sub price is used when our subscription toggle is checked. */
+  var UNIT_PRICE = 64;
+  var SUB_DISC   = 0.20;
+  function fmt(n) { return '$' + n.toFixed(2); }
+  function bottlesForBar(bar, index) {
+    var t = (bar.textContent || '').replace(/\s+/g, ' ');
+    var m = t.match(/buy\s+(\d+)/i);
+    if (m) return parseInt(m[1], 10);
+    m = t.match(/(\d+)\s*bottle/i);
+    if (m) return parseInt(m[1], 10);
+    var r = bar.querySelector('input[type="radio"][value]');
+    if (r && /^\d+$/.test(r.value)) {
+      var v = parseInt(r.value, 10);
+      if (v >= 1 && v <= 10) return v;
+    }
+    return index + 1;
+  }
+  function subOn() {
+    return !!document.querySelector('.ova-sub-toggle:checked');
+  }
+  function overrideBundlePrices() {
+    var bars = document.querySelectorAll('.kaching-bundles__bar');
+    if (!bars.length) return;
+    var sub = subOn();
+    bars.forEach(function (bar, idx) {
+      var bottles = bottlesForBar(bar, idx);
+      var ot      = UNIT_PRICE * bottles;
+      var price   = sub ? ot * (1 - SUB_DISC) : ot;
+      var compare = ot; /* compare-at always shows base */
+      var priceText   = fmt(price);
+      var compareText = fmt(compare);
+
+      /* Main price element(s). */
+      var priceEls = bar.querySelectorAll(
+        '.kaching-bundles__bar-price, ' +
+        '.kaching-bundles__bar-discounted-price, ' +
+        '.kaching-bundles__bar-final-price, ' +
+        '[class*="bar-price"]:not([class*="compare"])'
+      );
+      priceEls.forEach(function (el) {
+        if (el.getAttribute('data-ova-price') !== priceText) {
+          el.textContent = priceText;
+          el.setAttribute('data-ova-price', priceText);
+        }
+      });
+
+      /* Compare-at / struck-through. Only show when sub is on (real saving). */
+      var cmpEls = bar.querySelectorAll(
+        '.kaching-bundles__bar-compare-price, ' +
+        '.kaching-bundles__bar-original-price, ' +
+        '[class*="compare-price"], [class*="original-price"]'
+      );
+      cmpEls.forEach(function (el) {
+        if (sub) {
+          el.textContent = compareText;
+          el.style.display = '';
+        } else {
+          el.textContent = '';
+          el.style.display = 'none';
+        }
+        el.setAttribute('data-ova-cmp', '1');
+      });
     });
   }
 
@@ -281,6 +351,7 @@ window._ovaCcRedirectInit = true;
 
   function scanProductForms() {
     syncKachingVariant();
+    overrideBundlePrices();
     document.querySelectorAll('form[data-type="add-to-cart-form"], form[action="/cart/add"], form[action^="/cart/add"]').forEach(wireProductForm);
   }
   scanProductForms();
