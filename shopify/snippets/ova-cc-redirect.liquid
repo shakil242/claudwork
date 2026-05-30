@@ -239,12 +239,12 @@ window._ovaCcRedirectInit = true;
   }
 
   /* Override each Katching tier's displayed price:
-        1 bottle  -> $64.00    sub $51.20  (20% off)
-        2 bottles -> $128.00   sub $102.40
-        3 bottles -> $192.00   sub $153.60
-     Sub price is used when our subscription toggle is checked. */
-  var UNIT_PRICE = 64;
-  var SUB_DISC   = 0.20;
+        1 bottle  -> sub $64.00    one-time $76.80   (sub +20% = OT)
+        2 bottles -> sub $128.00   one-time $153.60
+        3 bottles -> sub $192.00   one-time $230.40
+     Sub price shows when our subscription toggle is checked, otherwise OT. */
+  var SUB_UNIT  = 64;
+  var OT_MARKUP = 0.20;
   function fmt(n) { return '$' + n.toFixed(2); }
   function bottlesForBar(bar, index) {
     var t = (bar.textContent || '').replace(/\s+/g, ' ');
@@ -268,9 +268,10 @@ window._ovaCcRedirectInit = true;
     var sub = subOn();
     bars.forEach(function (bar, idx) {
       var bottles = bottlesForBar(bar, idx);
-      var ot      = UNIT_PRICE * bottles;
-      var price   = sub ? ot * (1 - SUB_DISC) : ot;
-      var compare = ot; /* compare-at always shows base */
+      var subAmt  = SUB_UNIT * bottles;
+      var otAmt   = subAmt * (1 + OT_MARKUP);
+      var price   = sub ? subAmt : otAmt;
+      var compare = otAmt; /* compare-at: shows full OT price when sub is on */
       var priceText   = fmt(price);
       var compareText = fmt(compare);
 
