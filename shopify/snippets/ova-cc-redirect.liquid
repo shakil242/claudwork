@@ -215,8 +215,11 @@ window._ovaCcRedirectInit = true;
   function ensureSubToggle(form) {
     if (!form || form.previousElementSibling && form.previousElementSibling.classList && form.previousElementSibling.classList.contains('ova-sub-wrap')) return;
     if (form.parentNode && form.parentNode.querySelector('.ova-sub-wrap')) return;
-    var checked = false;
-    try { checked = localStorage.getItem('ovaSubOn') === '1'; } catch (e) {}
+    var checked = true;
+    try {
+      var stored = localStorage.getItem('ovaSubOn');
+      if (stored === '0') checked = false;
+    } catch (e) {}
     var wrap = document.createElement('div');
     wrap.className = 'ova-sub-wrap';
     wrap.innerHTML =
