@@ -94,8 +94,26 @@ window._ovaCcRedirectInit = true;
     return m ? decodeURIComponent(m[1]) : '';
   }
 
-  /* A line item is a subscription when Shopify attached a selling plan. */
+  /* Global subscription state: our toggle wins, then localStorage, then
+     default ON (matches the product-page default). This is checked from
+     BOTH the product-form path and the cart checkout path so the offer
+     sent to CheckoutChamp matches what the user saw on the page. */
+  function isGlobalSubOn() {
+    if (document.querySelector('.ova-sub-toggle:checked')) return true;
+    var box = document.querySelector('.ova-sub-toggle');
+    if (box && box.checked === false) return false;
+    try {
+      var v = localStorage.getItem('ovaSubOn');
+      if (v === '1') return true;
+      if (v === '0') return false;
+    } catch (e) {}
+    return true;
+  }
+
+  /* A line item is a subscription when our toggle is on OR Shopify
+     attached a selling plan to the line. */
   function isSubscription(item) {
+    if (isGlobalSubOn()) return true;
     if (item.selling_plan_allocation) return true;
     if (item.selling_plan_id) return true;
     if (item.properties && (item.properties._selling_plan || item.properties.selling_plan)) return true;
@@ -142,12 +160,9 @@ window._ovaCcRedirectInit = true;
   }
 
   function isSubscriptionOnPage(form) {
-    /* Our injected toggle wins. */
-    if (document.querySelector('.ova-sub-toggle:checked')) return true;
-    /* Selling-plan input inside or near the product form */
+    if (isGlobalSubOn()) return true;
     var sp = form.querySelector('input[name="selling_plan"], input[name="selling_plan_id"], input[name="properties[__shopify_selling_plan]"]');
     if (sp && sp.value && sp.value !== '0') return true;
-    /* Katching / common subscription toggles */
     var t = document.querySelector('[data-kaching-subscription]:checked, [data-kaching-sub]:checked, input[name*="selling_plan"]:checked');
     return !!t;
   }
